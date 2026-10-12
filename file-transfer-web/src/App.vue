@@ -10,11 +10,23 @@
         <el-tag type="success" effect="plain" round size="small">Vue 3 + Element Plus + TS</el-tag>
       </div>
 
+      <!-- 中间视图切换导航 -->
+      <div class="header-center">
+        <el-radio-group v-model="activeTab" size="default">
+          <el-radio-button value="dashboard">
+            <el-icon style="margin-right: 4px"><Files /></el-icon> 文件流转管理
+          </el-radio-button>
+          <el-radio-button value="surface">
+            <el-icon style="margin-right: 4px"><TrendCharts /></el-icon> 3D IC 响应曲面
+          </el-radio-button>
+        </el-radio-group>
+      </div>
+
       <div class="header-right">
         <el-tooltip content="刷新系统" placement="bottom">
           <el-button circle :icon="Refresh" @click="handleRefresh" />
         </el-tooltip>
-        <el-tooltip content="新建摆渡任务" placement="bottom">
+        <el-tooltip content="新建摆渡任务" placement="bottom" v-if="activeTab === 'dashboard'">
           <el-button type="primary" :icon="Plus" @click="openDialog()">新建任务</el-button>
         </el-tooltip>
         <el-divider direction="vertical" />
@@ -27,6 +39,8 @@
 
     <!-- 主体区域 -->
     <main class="app-main">
+      <!-- 视图 1: 文件流转看板 -->
+      <div v-show="activeTab === 'dashboard'">
       <!-- 统计指标卡片 -->
       <el-row :gutter="16" class="stats-row">
         <el-col :xs="24" :sm="12" :md="6" v-for="stat in statistics" :key="stat.title">
@@ -133,6 +147,12 @@
           />
         </div>
       </el-card>
+      </div>
+
+      <!-- 视图 2: 3D IC 响应曲面分析 -->
+      <div v-show="activeTab === 'surface'" class="surface-view-wrapper">
+        <ICSurfacePlot />
+      </div>
     </main>
 
     <!-- 新建/编辑对话框 -->
@@ -216,9 +236,14 @@ import {
   Files,
   CircleCheck,
   Timer,
-  CircleClose
+  CircleClose,
+  TrendCharts
 } from '@element-plus/icons-vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import ICSurfacePlot from './components/ICSurfacePlot.vue'
+
+// 视图切换状态 ('dashboard' | 'surface')
+const activeTab = ref<'dashboard' | 'surface'>('dashboard')
 
 // 数据类型接口定义
 export interface FileTransferItem {
@@ -476,6 +501,11 @@ const handleDelete = (id: number) => {
   color: #0f172a;
 }
 
+.header-center {
+  display: flex;
+  align-items: center;
+}
+
 .header-right {
   display: flex;
   align-items: center;
@@ -572,5 +602,14 @@ const handleDelete = (id: number) => {
   margin-top: 16px;
   display: flex;
   justify-content: flex-end;
+}
+
+.surface-view-wrapper {
+  width: 100%;
+  height: calc(100vh - 112px);
+  min-height: 650px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
 </style>
