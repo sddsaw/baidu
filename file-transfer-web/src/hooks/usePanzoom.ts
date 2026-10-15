@@ -2,11 +2,19 @@ import { ref, computed, shallowRef, onMounted, onUnmounted, type Ref, type Compu
 import Panzoom, { type PanzoomObject, type PanzoomOptions } from '@panzoom/panzoom'
 
 export interface UsePanzoomOptions {
-  /** 最小缩放倍数，默认 0.3 */
+  /**
+   * 目标组件的基础设计物理宽度（如 1100px）
+   * 核心作用：防止外层容器变窄（如 500px）时内部元素被挤压截断，以此为基准进行高精度等比缩放
+   * 默认 1100
+   */
+  baseWidth?: number
+  /** 目标组件的基础设计物理高度，默认 680 */
+  baseHeight?: number
+  /** 最小缩放倍数，默认 0.15（允许在极小容器如 300px~500px 下完整缩放展示） */
   minScale?: number
   /** 最大缩放倍数，默认 3.0 */
   maxScale?: number
-  /** 单次滚轮或点击缩放步进，默认 0.1 */
+  /** 单次滚轮或点击缩放步进，默认 0.08 */
   step?: number
   /** 初始缩放倍数，默认 1.0 */
   initialScale?: number
@@ -18,11 +26,11 @@ export interface UsePanzoomOptions {
   doubleClickReset?: boolean
   /**
    * 客户端窗口/容器被拉伸改变尺寸时，是否自动重新自适应，默认 true
-   * 在自适应模式下拉伸窗口，组件会自动按比例舒展缩放，保证始终完整呈现在视野中
+   * 在自适应模式下拉伸窗口，组件会自动按比例舒展缩放，保证始终 100% 完整呈现在视野中
    */
   autoFitOnResize?: boolean
   /**
-   * 初始化挂载时是否自动根据当前容器宽度自适应（小屏或窄窗口自动缩小，避免右侧溢出），默认 true
+   * 初始化挂载时是否自动根据当前容器宽度自适应，默认 true
    */
   autoFitOnInit?: boolean
   /**
@@ -38,9 +46,9 @@ export interface UsePanzoomOptions {
 export interface UsePanzoomReturn {
   /** Panzoom 底层实例对象 */
   panzoom: ShallowRef<PanzoomObject | null>
-  /** 当前实时缩放比例（数值，如 1.0, 1.25） */
+  /** 当前实时缩放比例（数值，如 1.0, 0.45） */
   scale: Ref<number>
-  /** 当前缩放比例百分比字符串（如 "100%", "125%"） */
+  /** 当前缩放比例百分比字符串（如 "100%", "45%"） */
   scalePercent: ComputedRef<string>
   /** 当前是否处于拖拽平移中 */
   isPanning: Ref<boolean>
@@ -58,7 +66,7 @@ export interface UsePanzoomReturn {
   zoomTo: (targetScale: number) => void
   /** 复位缩放和平移（回到 1.0 倍且居中） */
   reset: () => void
-  /** 自适应容器（将组件缩放到适合外层容器的大小） */
+  /** 自适应容器（核心：根据容器当前尺寸自动计算最适比例并完整展示） */
   fitToContainer: () => void
 }
 
@@ -67,7 +75,7 @@ export interface UsePanzoomReturn {
  * 专为客户端组件设计的平移与缩放组合式函数 (Vue 3 Composable)
  * 核心特性：
  * 1. 严格支持 Ctrl + 鼠标滚轮 精准以光标为中心缩放（Focal Point Zooming）
- * 2. 窗口拉伸自适应：监听 ResizeObserver 与 window.resize，窗口拉伸时智能重新计算适配比例
+ * 2. 窗口拉伸高精度自适应：监听 ResizeObserver，无论拉伸至 1000px 还是 500px 甚至 350px，均自动等比缩放并完整展示
  * 3. 智能防冲突：自动排除输入框、下拉框、按钮等控件，保证机台表单交互 100% 顺畅
  * 4. 支持鼠标平移、空格抓手拖拽与双击复位
  * 5. 完整的生命周期清理，防止内存泄漏
@@ -82,9 +90,11 @@ export function usePanzoom(
   options: UsePanzoomOptions = {}
 ): UsePanzoomReturn {
   const {
-    minScale = 0.3,
+    baseWidth = 1100,
+    baseHeight = 680,
+    minScale = 0.15,
     maxScale = 3.0,
-    step = 0.1,
+    step = 0.08,
     initialScale = 1.0,
     requireCtrlForWheel = true,
     enablePan = true,
@@ -213,13 +223,8 @@ export function usePanzoom(
     if (target && excludeSelector && target.closest(excludeSelector)) {
       return
     }
-    // 容器较小时双击自适应，容器充裕时复位 1:1
-    const containerEl = containerRef?.value || targetRef.value?.parentElement
-    if (containerEl && targetRef.value && containerEl.clientWidth < targetRef.value.offsetWidth + 60) {
-      fitToContainer()
-    } else {
-      reset()
-    }
+    // 恢复自适应展示
+    fitToContainer()
   }
 
   // 放大
@@ -254,48 +259,66 @@ export function usePanzoom(
     updateState()
   }
 
-  // 自适应容器（核心：根据容器当前尺寸自动计算最适比例）
+  // 自适应容器（核心修复：基于固定基准设计尺寸进行全精度等比计算，杜绝 500px 下被裁切）
   const fitToContainer = () => {
     const targetEl = targetRef.value
     const containerEl = containerRef?.value || targetEl?.parentElement
     if (!targetEl || !containerEl || !panzoom.value) return
 
-    // 留出内边距与浮动面板空间
-    const containerWidth = containerEl.clientWidth - 48
-    const containerHeight = containerEl.clientHeight - 80
-    const targetWidth = targetEl.offsetWidth
-    const targetHeight = targetEl.offsetHeight
+    // 1. 获取外层容器计算样式，精确扣除内边距与边框
+    const containerStyle = window.getComputedStyle(containerEl)
+    const paddingLeft = parseFloat(containerStyle.paddingLeft) || 0
+    const paddingRight = parseFloat(containerStyle.paddingRight) || 0
+    const paddingTop = parseFloat(containerStyle.paddingTop) || 0
+    const paddingBottom = parseFloat(containerStyle.paddingBottom) || 0
 
-    if (containerWidth <= 0 || targetWidth <= 0) return
+    // 可用净宽度（预留两侧各 8px 呼吸边距）
+    const containerInnerWidth = containerEl.clientWidth - paddingLeft - paddingRight
+    const availableWidth = Math.max(containerInnerWidth - 16, 60)
 
-    // 计算宽度容纳比与高度容纳比
-    const scaleX = containerWidth / targetWidth
-    let fitScale = Math.min(scaleX, 1.0) // 默认最大不超过 1.0
+    // 2. 基准物理宽度：必须使用独立于当前挤压尺寸的固定设计宽度
+    // 这样在 500px 甚至 300px 下也能以真实 1100px 为分母，算出的缩放比真实无误
+    const designWidth = baseWidth || 1100
+    if (availableWidth <= 0 || designWidth <= 0) return
 
-    // 若高度有明显约束，适当均衡高度
-    if (containerHeight > 300 && targetHeight > 0) {
-      const scaleY = containerHeight / targetHeight
-      if (scaleY < fitScale && scaleY > 0.45) {
-        fitScale = Math.max(scaleY, 0.45)
+    // 计算宽度容纳比
+    let fitScale = availableWidth / designWidth
+
+    // 3. 计算高度容纳比（如果有垂直视口限制，避免下半部分被裁）
+    const containerInnerHeight = containerEl.clientHeight - paddingTop - paddingBottom
+    // 减去 HUD 悬浮面板占用空间约 60px
+    const availableHeight = Math.max(containerInnerHeight - 64, 60)
+    const designHeight = baseHeight || 680
+
+    if (availableHeight > 150 && designHeight > 0) {
+      const scaleY = availableHeight / designHeight
+      // 兼顾高度，取宽高容纳比的较小者，确保四面均完整展示
+      if (scaleY < fitScale) {
+        fitScale = scaleY
       }
     }
 
-    fitScale = Math.min(Math.max(Number(fitScale.toFixed(2)), minScale), maxScale)
+    // 4. 默认最大不超过 1.0（在大屏下保持原始设计清晰度，避免模糊拉伸）
+    fitScale = Math.min(fitScale, 1.0)
+    // 边界钳制 (clamp)
+    fitScale = Math.min(Math.max(Number(fitScale.toFixed(3)), minScale), maxScale)
 
     isAutoFit.value = true
+
+    // 5. 重置平移为原点，并直接应用自适应比例
     panzoom.value.reset({ animate: false })
-    zoomTo(fitScale)
+    panzoom.value.zoom(fitScale, { animate: false })
+    updateState()
   }
 
-  // 处理窗口或容器尺寸拉伸改变
+  // 处理窗口或容器尺寸拉伸改变 (防抖 30ms 保证拉动边框时极致平滑)
   const handleResize = () => {
     if (!autoFitOnResize) return
-    // 如果用户当前处于自适应模式，自动重新计算比例
     if (isAutoFit.value) {
       if (resizeTimer) clearTimeout(resizeTimer)
       resizeTimer = setTimeout(() => {
         fitToContainer()
-      }, 50)
+      }, 30)
     }
   }
 
@@ -352,15 +375,11 @@ export function usePanzoom(
     // 监听窗口尺寸变化
     window.addEventListener('resize', handleResize)
 
-    // 初次加载自适应（小屏或窄视口自动缩放适配）
+    // 初次加载自适应（无论当前屏幕或容器多大，立刻进行全适配）
     if (autoFitOnInit) {
       setTimeout(() => {
-        if (containerEl.clientWidth < targetEl.offsetWidth + 48) {
-          fitToContainer()
-        } else {
-          updateState()
-        }
-      }, 60)
+        fitToContainer()
+      }, 30)
     } else {
       updateState()
     }

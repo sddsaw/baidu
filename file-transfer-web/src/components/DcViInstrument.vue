@@ -545,7 +545,9 @@ const {
   reset: resetZoom,
   fitToContainer
 } = usePanzoom(chassisRef, viewportRef, {
-  minScale: 0.35,
+  baseWidth: 1100,
+  baseHeight: 680,
+  minScale: 0.15,
   maxScale: 2.5,
   step: 0.08,
   requireCtrlForWheel: true,
@@ -748,7 +750,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: flex-start;
   min-height: calc(100vh - 120px);
-  padding: 16px 20px 48px;
+  padding: 12px 6px 40px;
   user-select: none;
   background-color: #1e2022;
   background-image: 
@@ -756,6 +758,7 @@ onUnmounted(() => {
     radial-gradient(rgba(255, 255, 255, 0.05) 1.2px, #1e2022 1.2px);
   background-size: 24px 24px;
   background-position: 0 0, 12px 12px;
+  box-sizing: border-box;
   color: #f1f5f9;
 }
 
@@ -926,10 +929,12 @@ onUnmounted(() => {
   box-shadow: 0 0 6px rgba(56, 189, 248, 0.8);
 }
 
-/* ================= 2. 机台机箱底盘 ================= */
+/* ================= 2. 机台机箱底盘：保持固定设计物理尺寸，通过 transform 矩阵进行全保真等比缩放 ================= */
 .ate-instrument-chassis {
-  width: 100%;
+  width: 1100px;
+  min-width: 1100px;
   max-width: 1100px;
+  flex-shrink: 0;
   background-color: #26282b;
   border: 1px solid #3c4046;
   border-radius: 6px;
