@@ -41,6 +41,16 @@
         <span class="hud-tip-text">
           {{ isSpacePressed ? '抓手模式: 按住鼠标拖动画布' : '+ 鼠标拖拽平移' }}
         </span>
+        <span class="hud-dot">·</span>
+        <span
+          class="hud-mode-pill"
+          :class="{ 'mode-autofit': isAutoFit }"
+          @click="fitToContainer"
+          :title="isAutoFit ? '当前处于窗口拉伸自适应模式' : '点击切回窗口拉伸自适应模式'"
+        >
+          <span class="mode-led"></span>
+          {{ isAutoFit ? '窗口拉伸自适应' : '自由观察中' }}
+        </span>
       </div>
     </div>
 
@@ -488,6 +498,7 @@ const {
   isCtrlPressed,
   isSpacePressed,
   isPanning,
+  isAutoFit,
   zoomIn,
   zoomOut,
   reset: resetZoom,
@@ -498,7 +509,9 @@ const {
   step: 0.08,
   requireCtrlForWheel: true,
   enablePan: true,
-  doubleClickReset: true
+  doubleClickReset: true,
+  autoFitOnResize: true,
+  autoFitOnInit: true
 })
 
 // --- 状态定义 ---
@@ -831,6 +844,45 @@ onUnmounted(() => {
 .hud-dot {
   color: #94a3b8;
   font-weight: bold;
+}
+
+.hud-mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 7px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.hud-mode-pill:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.hud-mode-pill.mode-autofit {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.mode-led {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #94a3b8;
+  transition: all 0.15s ease;
+}
+
+.hud-mode-pill.mode-autofit .mode-led {
+  background: #2563eb;
+  box-shadow: 0 0 6px rgba(37, 99, 235, 0.6);
 }
 
 /* 工具栏缩放 Badge */

@@ -17,6 +17,15 @@ export interface UsePanzoomOptions {
   /** 双击空白处是否快速复位，默认 true */
   doubleClickReset?: boolean
   /**
+   * 客户端窗口/容器被拉伸改变尺寸时，是否自动重新自适应，默认 true
+   * 在自适应模式下拉伸窗口，组件会自动按比例舒展缩放，保证始终完整呈现在视野中
+   */
+  autoFitOnResize?: boolean
+  /**
+   * 初始化挂载时是否自动根据当前容器宽度自适应（小屏或窄窗口自动缩小，避免右侧溢出），默认 true
+   */
+  autoFitOnInit?: boolean
+  /**
    * 排除拖拽平移的元素选择器（默认自动排除各类输入框、下拉框、按钮等，确保表单交互完全正常）
    */
   excludeSelector?: string
@@ -39,6 +48,8 @@ export interface UsePanzoomReturn {
   isCtrlPressed: Ref<boolean>
   /** 当前是否按住空格键（抓手平移模式） */
   isSpacePressed: Ref<boolean>
+  /** 当前是否处于自适应视口模式（未被用户手动放大缩小打断） */
+  isAutoFit: Ref<boolean>
   /** 放大一步 */
   zoomIn: (customStep?: number) => void
   /** 缩小一步 */
@@ -56,9 +67,10 @@ export interface UsePanzoomReturn {
  * 专为客户端组件设计的平移与缩放组合式函数 (Vue 3 Composable)
  * 核心特性：
  * 1. 严格支持 Ctrl + 鼠标滚轮 精准以光标为中心缩放（Focal Point Zooming）
- * 2. 智能防冲突：自动排除输入框、下拉框、按钮等控件，保证机台表单交互 100% 顺畅
- * 3. 支持鼠标平移、空格抓手拖拽与双击复位
- * 4. 完整的生命周期清理，防止内存泄漏
+ * 2. 窗口拉伸自适应：监听 ResizeObserver 与 window.resize，窗口拉伸时智能重新计算适配比例
+ * 3. 智能防冲突：自动排除输入框、下拉框、按钮等控件，保证机台表单交互 100% 顺畅
+ * 4. 支持鼠标平移、空格抓手拖拽与双击复位
+ * 5. 完整的生命周期清理，防止内存泄漏
  *
  * @param targetRef 需要被缩放/平移的目标组件 DOM Ref
  * @param containerRef 包含该组件的外层视口容器 Ref（若不传，则取 targetRef 的父级元素）
@@ -77,6 +89,8 @@ export function usePanzoom(
     requireCtrlForWheel = true,
     enablePan = true,
     doubleClickReset = true,
+    autoFitOnResize = true,
+    autoFitOnInit = true,
     excludeSelector = 'input, select, textarea, button, a, [role="button"], .el-select, .el-select-dropdown, .el-input, .el-button, .el-checkbox, .el-switch, .ate-btn, .ate-input, .ate-select, .no-panzoom',
     onScaleChange,
     onPanChange
@@ -87,6 +101,11 @@ export function usePanzoom(
   const isPanning = ref<boolean>(false)
   const isCtrlPressed = ref<boolean>(false)
   const isSpacePressed = ref<boolean>(false)
+  // 记录当前是否处于自适应状态（用户一旦手动 Ctrl+滚轮 缩放或主动拖拽，进入自由探索模式；点击自适应或复位后恢复自适应模式）
+  const isAutoFit = ref<boolean>(true)
+
+  let resizeObserver: ResizeObserver | null = null
+  let resizeTimer: ReturnType<typeof setTimeout> | null = null
 
   // 格式化缩放百分比
   const scalePercent = computed(() => `${Math.round(scale.value * 100)}%`)
@@ -136,6 +155,9 @@ export function usePanzoom(
     // 拦截浏览器默认的缩放行为与页面滚动
     event.preventDefault()
 
+    // 用户主动滚轮缩放，离开自动自适应模式
+    isAutoFit.value = false
+
     // 调用 Panzoom 的以光标为中心的缩放方法
     panzoom.value.zoomWithWheel(event, {
       step
@@ -170,6 +192,8 @@ export function usePanzoom(
 
   const handlePointerMove = (event: PointerEvent) => {
     if (!panzoom.value || !isPanning.value) return
+    // 用户手动拖拽平移，标记离开默认自适应状态
+    isAutoFit.value = false
     panzoom.value.handleMove(event)
   }
 
@@ -189,7 +213,90 @@ export function usePanzoom(
     if (target && excludeSelector && target.closest(excludeSelector)) {
       return
     }
-    reset()
+    // 容器较小时双击自适应，容器充裕时复位 1:1
+    const containerEl = containerRef?.value || targetRef.value?.parentElement
+    if (containerEl && targetRef.value && containerEl.clientWidth < targetRef.value.offsetWidth + 60) {
+      fitToContainer()
+    } else {
+      reset()
+    }
+  }
+
+  // 放大
+  const zoomIn = (customStep?: number) => {
+    if (!panzoom.value) return
+    isAutoFit.value = false
+    panzoom.value.zoomIn({ step: customStep ?? step })
+    updateState()
+  }
+
+  // 缩小
+  const zoomOut = (customStep?: number) => {
+    if (!panzoom.value) return
+    isAutoFit.value = false
+    panzoom.value.zoomOut({ step: customStep ?? step })
+    updateState()
+  }
+
+  // 缩放到指定比例
+  const zoomTo = (targetScale: number) => {
+    if (!panzoom.value) return
+    const clampedScale = Math.min(Math.max(targetScale, minScale), maxScale)
+    panzoom.value.zoom(clampedScale, { animate: true })
+    updateState()
+  }
+
+  // 复位 (1.0 倍且居中)
+  const reset = () => {
+    if (!panzoom.value) return
+    isAutoFit.value = true
+    panzoom.value.reset({ animate: true })
+    updateState()
+  }
+
+  // 自适应容器（核心：根据容器当前尺寸自动计算最适比例）
+  const fitToContainer = () => {
+    const targetEl = targetRef.value
+    const containerEl = containerRef?.value || targetEl?.parentElement
+    if (!targetEl || !containerEl || !panzoom.value) return
+
+    // 留出内边距与浮动面板空间
+    const containerWidth = containerEl.clientWidth - 48
+    const containerHeight = containerEl.clientHeight - 80
+    const targetWidth = targetEl.offsetWidth
+    const targetHeight = targetEl.offsetHeight
+
+    if (containerWidth <= 0 || targetWidth <= 0) return
+
+    // 计算宽度容纳比与高度容纳比
+    const scaleX = containerWidth / targetWidth
+    let fitScale = Math.min(scaleX, 1.0) // 默认最大不超过 1.0
+
+    // 若高度有明显约束，适当均衡高度
+    if (containerHeight > 300 && targetHeight > 0) {
+      const scaleY = containerHeight / targetHeight
+      if (scaleY < fitScale && scaleY > 0.45) {
+        fitScale = Math.max(scaleY, 0.45)
+      }
+    }
+
+    fitScale = Math.min(Math.max(Number(fitScale.toFixed(2)), minScale), maxScale)
+
+    isAutoFit.value = true
+    panzoom.value.reset({ animate: false })
+    zoomTo(fitScale)
+  }
+
+  // 处理窗口或容器尺寸拉伸改变
+  const handleResize = () => {
+    if (!autoFitOnResize) return
+    // 如果用户当前处于自适应模式，自动重新计算比例
+    if (isAutoFit.value) {
+      if (resizeTimer) clearTimeout(resizeTimer)
+      resizeTimer = setTimeout(() => {
+        fitToContainer()
+      }, 50)
+    }
   }
 
   // 初始化 Panzoom 实例与事件绑定
@@ -234,58 +341,29 @@ export function usePanzoom(
       targetEl.addEventListener('dblclick', handleDblClick)
     }
 
-    // 初始化缩放值
-    updateState()
-  }
+    // 监听容器尺寸拉伸变化 (ResizeObserver)
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => {
+        handleResize()
+      })
+      resizeObserver.observe(containerEl)
+    }
 
-  // 放大
-  const zoomIn = (customStep?: number) => {
-    if (!panzoom.value) return
-    panzoom.value.zoomIn({ step: customStep ?? step })
-    updateState()
-  }
+    // 监听窗口尺寸变化
+    window.addEventListener('resize', handleResize)
 
-  // 缩小
-  const zoomOut = (customStep?: number) => {
-    if (!panzoom.value) return
-    panzoom.value.zoomOut({ step: customStep ?? step })
-    updateState()
-  }
-
-  // 缩放到指定比例
-  const zoomTo = (targetScale: number) => {
-    if (!panzoom.value) return
-    const clampedScale = Math.min(Math.max(targetScale, minScale), maxScale)
-    panzoom.value.zoom(clampedScale, { animate: true })
-    updateState()
-  }
-
-  // 复位 (1.0 倍且居中)
-  const reset = () => {
-    if (!panzoom.value) return
-    panzoom.value.reset({ animate: true })
-    updateState()
-  }
-
-  // 自适应容器
-  const fitToContainer = () => {
-    const targetEl = targetRef.value
-    const containerEl = containerRef?.value || targetEl?.parentElement
-    if (!targetEl || !containerEl || !panzoom.value) return
-
-    const containerWidth = containerEl.clientWidth - 48
-    const containerHeight = containerEl.clientHeight - 48
-    const targetWidth = targetEl.offsetWidth
-    const targetHeight = targetEl.offsetHeight
-
-    if (containerWidth <= 0 || targetWidth <= 0) return
-
-    const scaleX = containerWidth / targetWidth
-    const scaleY = containerHeight / targetHeight
-    const fitScale = Math.min(scaleX, scaleY, 1.0)
-
-    panzoom.value.reset({ animate: false })
-    zoomTo(fitScale)
+    // 初次加载自适应（小屏或窄视口自动缩放适配）
+    if (autoFitOnInit) {
+      setTimeout(() => {
+        if (containerEl.clientWidth < targetEl.offsetWidth + 48) {
+          fitToContainer()
+        } else {
+          updateState()
+        }
+      }, 60)
+    } else {
+      updateState()
+    }
   }
 
   onMounted(() => {
@@ -297,6 +375,17 @@ export function usePanzoom(
   onUnmounted(() => {
     window.removeEventListener('keydown', handleKeyDown)
     window.removeEventListener('keyup', handleKeyUp)
+    window.removeEventListener('resize', handleResize)
+
+    if (resizeTimer) {
+      clearTimeout(resizeTimer)
+      resizeTimer = null
+    }
+
+    if (resizeObserver) {
+      resizeObserver.disconnect()
+      resizeObserver = null
+    }
 
     const targetEl = targetRef.value
     const containerEl = containerRef?.value || targetEl?.parentElement
@@ -329,6 +418,7 @@ export function usePanzoom(
     isPanning,
     isCtrlPressed,
     isSpacePressed,
+    isAutoFit,
     zoomIn,
     zoomOut,
     zoomTo,
