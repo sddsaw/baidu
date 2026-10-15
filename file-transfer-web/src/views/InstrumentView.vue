@@ -13,14 +13,16 @@ import DcViInstrument from '@/components/DcViInstrument.vue'
 <style scoped>
 .instrument-page {
   width: 100%;
+  height: 100%;
+  min-height: calc(100vh - 120px);
   display: flex;
   justify-content: center;
 }
 
 .instrument-view-wrapper {
   width: 100%;
+  height: 100%;
   display: flex;
   justify-content: center;
-  padding-bottom: 24px;
 }
 </style>

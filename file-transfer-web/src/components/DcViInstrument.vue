@@ -54,12 +54,14 @@
       </div>
     </div>
 
-    <!-- 主机台外框 (Teradyne UltraFLEX / IG-XL 风格经典集成测试仪) -->
-    <div
-      class="ate-instrument-chassis"
-      ref="chassisRef"
-      :class="{ 'cursor-grab': isSpacePressed, 'cursor-grabbing': isPanning }"
-    >
+    <!-- 居中视口工作区舞台 (Stage) -->
+    <div class="ate-stage">
+      <!-- 主机台外框 (Teradyne UltraFLEX / IG-XL 风格经典集成测试仪) -->
+      <div
+        class="ate-instrument-chassis"
+        ref="chassisRef"
+        :class="{ 'cursor-grab': isSpacePressed, 'cursor-grabbing': isPanning }"
+      >
       
       <!-- ================= 1. 顶部操作工具栏 (Header Toolbar) ================= -->
       <div class="ate-toolbar">
@@ -512,6 +514,7 @@
       </div>
 
     </div>
+    </div>
   </div>
 </template>
 
@@ -547,8 +550,8 @@ const {
 } = usePanzoom(chassisRef, viewportRef, {
   baseWidth: 1100,
   baseHeight: 680,
-  minScale: 0.15,
-  maxScale: 2.5,
+  minScale: 0.1,
+  maxScale: 3.5,
   step: 0.08,
   requireCtrlForWheel: true,
   enablePan: true,
@@ -743,14 +746,16 @@ onUnmounted(() => {
 /* ================= 1. 全局容器：暗黑工作台 (匹配参考图工业深灰背景) ================= */
 .dc-vi-container {
   width: 100%;
+  height: 100%;
+  min-height: 0;
+  flex: 1 1 0%;
   position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  min-height: calc(100vh - 120px);
-  padding: 12px 6px 40px;
+  padding: 8px 6px 12px;
   user-select: none;
   background-color: #1e2022;
   background-image: 
@@ -760,26 +765,56 @@ onUnmounted(() => {
   background-position: 0 0, 12px 12px;
   box-sizing: border-box;
   color: #f1f5f9;
+  container-type: inline-size;
+}
+
+/* 视口居中工作区舞台 (确保机台在拉伸、放大缩小、或极小容器下始终精准居中) */
+.ate-stage {
+  flex: 1 1 0%;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: visible;
 }
 
 /* ================= 悬浮缩放与平移控制 HUD (Dark Glass 质感) ================= */
 .zoom-hud-panel {
+  flex-shrink: 0;
   position: sticky;
-  top: 10px;
+  top: 6px;
   z-index: 50;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 14px;
-  padding: 6px 14px;
+  gap: 5px;
+  margin-bottom: 8px;
+  padding: 5px 14px;
   background: rgba(33, 36, 40, 0.88);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 24px;
+  border-radius: 20px;
   box-shadow: 0 8px 24px -2px rgba(0, 0, 0, 0.5);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   color: #f1f5f9;
+}
+
+@container (max-width: 680px) {
+  .zoom-hud-panel {
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 3px 8px;
+    gap: 6px;
+    margin-bottom: 4px;
+    border-radius: 12px;
+  }
+  .hud-status .hud-tip-text,
+  .hud-status .hud-dot {
+    display: none;
+  }
 }
 
 .zoom-hud-panel:hover {

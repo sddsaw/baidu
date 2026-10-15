@@ -274,7 +274,7 @@ export function usePanzoom(
 
     // 可用净宽度（预留两侧各 8px 呼吸边距）
     const containerInnerWidth = containerEl.clientWidth - paddingLeft - paddingRight
-    const availableWidth = Math.max(containerInnerWidth - 16, 60)
+    const availableWidth = Math.max(containerInnerWidth - 16, 20)
 
     // 2. 基准物理宽度：必须使用独立于当前挤压尺寸的固定设计宽度
     // 这样在 500px 甚至 300px 下也能以真实 1100px 为分母，算出的缩放比真实无误
@@ -284,15 +284,17 @@ export function usePanzoom(
     // 计算宽度容纳比
     let fitScale = availableWidth / designWidth
 
-    // 3. 计算高度容纳比（如果有垂直视口限制，避免下半部分被裁）
+    // 3. 计算高度容纳比（长高双向自适应约束，确保上下左右无任何截断）
     const containerInnerHeight = containerEl.clientHeight - paddingTop - paddingBottom
-    // 减去 HUD 悬浮面板占用空间约 60px
-    const availableHeight = Math.max(containerInnerHeight - 64, 60)
+    // 动态获取 HUD 悬浮面板占用高度，若无则按默认 48px
+    const hudEl = containerEl.querySelector('.zoom-hud-panel') as HTMLElement | null
+    const hudHeight = hudEl ? hudEl.offsetHeight + 10 : 48
+    const availableHeight = Math.max(containerInnerHeight - hudHeight, 20)
     const designHeight = baseHeight || 680
 
-    if (availableHeight > 150 && designHeight > 0) {
+    // 只要外层容器有约束高度（大于 60px），即严格参与长高双向等比自适应
+    if (containerInnerHeight > 60 && designHeight > 0) {
       const scaleY = availableHeight / designHeight
-      // 兼顾高度，取宽高容纳比的较小者，确保四面均完整展示
       if (scaleY < fitScale) {
         fitScale = scaleY
       }
