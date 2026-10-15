@@ -115,7 +115,7 @@ export function usePanzoom(
   const isAutoFit = ref<boolean>(true)
 
   let resizeObserver: ResizeObserver | null = null
-  let resizeTimer: ReturnType<typeof setTimeout> | null = null
+  let rAFId: number | null = null
 
   // 格式化缩放百分比
   const scalePercent = computed(() => `${Math.round(scale.value * 100)}%`)
@@ -311,14 +311,14 @@ export function usePanzoom(
     updateState()
   }
 
-  // 处理窗口或容器尺寸拉伸改变 (防抖 30ms 保证拉动边框时极致平滑)
+  // 处理 DOM 容器尺寸变动（通过 requestAnimationFrame 帧同步，不论是纯 DOM 容器拖拽还是窗口拉伸，均 60fps 丝滑贴合）
   const handleResize = () => {
     if (!autoFitOnResize) return
     if (isAutoFit.value) {
-      if (resizeTimer) clearTimeout(resizeTimer)
-      resizeTimer = setTimeout(() => {
+      if (rAFId) cancelAnimationFrame(rAFId)
+      rAFId = requestAnimationFrame(() => {
         fitToContainer()
-      }, 30)
+      })
     }
   }
 
@@ -396,9 +396,9 @@ export function usePanzoom(
     window.removeEventListener('keyup', handleKeyUp)
     window.removeEventListener('resize', handleResize)
 
-    if (resizeTimer) {
-      clearTimeout(resizeTimer)
-      resizeTimer = null
+    if (rAFId) {
+      cancelAnimationFrame(rAFId)
+      rAFId = null
     }
 
     if (resizeObserver) {
