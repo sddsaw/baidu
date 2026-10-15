@@ -142,104 +142,145 @@
       <!-- ================= 2. 舒展均衡的统一工作画布 (min-height: 665px) ================= -->
       <div class="unified-canvas">
         
-        <!-- 全局统一矢量拓扑 SVG 层 (保证所有连线与元器件 100% 物理精准对齐) -->
+        <!-- 全局统一矢量拓扑 SVG 层 (保证所有连线与元器件 100% 物理精准对齐，暗黑工业风) -->
         <svg class="main-topology-svg" xmlns="http://www.w3.org/2000/svg">
           <defs>
-            <!-- 指向左侧 Meter Reading 的标准箭头 (端点向左) -->
+            <!-- 指向左侧的白色标准箭头 -->
             <marker id="arrow-left" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-              <path d="M 1 2 L 8 5 L 1 8 z" fill="#1e293b" />
+              <path d="M 1 2 L 8 5 L 1 8 z" fill="#ffffff" />
             </marker>
+            <!-- 翠绿发光滤镜 (用于 Drive / Comp 三角形放大器) -->
+            <filter id="glow-green" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="2.5" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+            <!-- 天蓝发光滤镜 (用于 Active Load / PPMU 模块) -->
+            <filter id="glow-blue" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="2" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+            <!-- 金黄发光滤镜 (用于末端 Pin 芯片触点) -->
+            <filter id="glow-yellow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="2" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
           </defs>
 
-          <!-- A. 驱动源输出主干线 (向右展开，y = 208px 中心线) -->
+          <!-- 1. 顶部参考图装饰标记：Period 与 Driver Mode 导向线 -->
+          <line x1="395" y1="135" x2="435" y2="135" stroke="#ffffff" stroke-width="2" />
+
+          <!-- 2. Drive 驱动源翠绿色三角形 (尖端向右，鲜艳荧光绿，匹配参考图) -->
+          <g class="svg-drive-amp" filter="url(#glow-green)">
+            <polygon points="560,192 596,208 560,224" fill="#22c55e" stroke="#4ade80" stroke-width="2" />
+            <text x="578" y="184" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">Drive</text>
+          </g>
+
+          <!-- 3. Comp 比较器翠绿色三角形 (尖端向左，鲜艳荧光绿，匹配参考图) -->
+          <g class="svg-comp-amp" filter="url(#glow-green)">
+            <polygon points="596,302 560,318 596,334" fill="#22c55e" stroke="#4ade80" stroke-width="2" />
+            <text x="578" y="294" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">Comp</text>
+          </g>
+
+          <!-- A. 驱动源输出主干线 (向右展开，白色高对比度，y = 208px 中心线) -->
           <line
-            x1="606"
+            x1="596"
             y1="208"
             x2="650"
             y2="208"
-            stroke="#334155"
+            stroke="#ffffff"
             stroke-width="2.5"
             :class="{ 'wire-active-flow': isGateActive }"
           />
           
-          <!-- 压摆整形方块 [/‾] (严格嵌入 x=650~688, y=208 导线断口) -->
+          <!-- 压摆整形方块 [/‾] (嵌入 x=650~688, y=208 导线断口) -->
           <g class="svg-slew-box">
-            <rect x="650" y="193" width="38" height="30" rx="3" fill="#ffffff" stroke="#334155" stroke-width="2"/>
-            <path d="M 656 215 L 665 215 L 673 201 L 682 201" fill="none" stroke="#0f172a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="650" y="193" width="38" height="30" rx="3" fill="#32353a" stroke="#64748b" stroke-width="1.8"/>
+            <path d="M 656 215 L 665 215 L 673 201 L 682 201" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
           </g>
           <line
             x1="688"
             y1="208"
             x2="730"
             y2="208"
-            stroke="#334155"
+            stroke="#ffffff"
             stroke-width="2.5"
             :class="{ 'wire-active-flow': isGateActive }"
           />
 
-          <!-- 精密采样电阻 /\\/\\/\\ (严格嵌入 x=730~805, y=208 导线断口) -->
+          <!-- 精密采样电阻 /\\/\\/\\ (白银色折线电阻，严格嵌入 x=730~805, y=208 导线断口) -->
           <path
             d="M 730 208 L 737 208 L 743 198 L 753 218 L 763 198 L 773 218 L 783 198 L 793 218 L 799 208 L 805 208"
             fill="none"
-            stroke="#0f172a"
+            stroke="#ffffff"
             stroke-width="2.5"
             stroke-linejoin="round"
           />
           <line
             x1="805"
             y1="208"
-            x2="1000"
+            x2="975"
             y2="208"
-            stroke="#334155"
+            stroke="#ffffff"
             stroke-width="2.5"
             :class="{ 'wire-active-flow': isGateActive }"
           />
 
-          <!-- B. Sense 远端感测回路平行线 (从紫色圆引出至 y = 270px，延伸至 x=1000) -->
+          <!-- 右侧末端向上微折角至芯片触点 (匹配参考图) -->
+          <line x1="975" y1="208" x2="990" y2="198" stroke="#ffffff" stroke-width="2.5" />
+          <line x1="990" y1="198" x2="1005" y2="198" stroke="#ffffff" stroke-width="2.5" />
+
+          <!-- 末端金黄色发光芯片引脚符号 (Pin Name & Channel) -->
+          <g class="svg-chip-pin" filter="url(#glow-yellow)">
+            <rect x="1005" y="186" width="22" height="24" rx="3" fill="#78350f" stroke="#eab308" stroke-width="2" />
+            <line x1="1000" y1="198" x2="1005" y2="198" stroke="#ffffff" stroke-width="2" />
+            <line x1="1027" y1="198" x2="1032" y2="198" stroke="#ffffff" stroke-width="2" />
+            <text x="1016" y="174" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle">Pin Name: {{ selectedPin }}</text>
+            <text x="1016" y="226" font-size="11" font-weight="700" fill="#cbd5e1" text-anchor="middle">Channel: 19.x202</text>
+          </g>
+
+          <!-- B. Sense 远端感测回路平行线 (从紫色圆引出至 y = 270px，延伸至 x=975) -->
           <line
             x1="580"
             y1="270"
-            x2="1000"
+            x2="975"
             y2="270"
-            stroke="#334155"
+            stroke="#ffffff"
             stroke-width="2.5"
             :class="{ 'wire-active-flow': isGateActive }"
           />
 
-          <!-- C. Kelvin 垂直短接红母线 (跨接 Force y=208 与 Sense y=270，右展至 x=1000 饱满布局) -->
-          <line x1="1000" y1="175" x2="1000" y2="305" stroke="#dc2626" stroke-width="4"/>
-          <polygon points="1000,204 1012,208 1000,212" fill="#dc2626"/>
-          <polygon points="1000,266 1012,270 1000,274" fill="#dc2626"/>
+          <!-- C. Kelvin 垂直短接母线 (跨接 Force 与 Sense) -->
+          <line x1="975" y1="175" x2="975" y2="305" stroke="#ef4444" stroke-width="3"/>
+          <polygon points="975,204 987,208 975,212" fill="#ef4444"/>
+          <polygon points="975,266 987,270 975,274" fill="#ef4444"/>
 
-          <!-- D. 电阻两端测量抽头节点 (Junction Dots) -->
-          <circle cx="730" cy="208" r="3.5" fill="#334155"/>
-          <circle cx="800" cy="208" r="3.5" fill="#334155"/>
+          <!-- D. 电阻两端测量抽头节点 (白色实心 Junction Dots) -->
+          <circle cx="730" cy="208" r="3.5" fill="#ffffff"/>
+          <circle cx="800" cy="208" r="3.5" fill="#ffffff"/>
 
-          <!-- E. 差分采样下行回路 (引向右侧，再 90度垂直折向下接入 Meter 右侧竖直基底) -->
-          <!-- 抽头 1 (电阻前侧 x=730)：垂直向下引至 y=395，向左进入 Meter 基底 (x=635, y=395) -->
-          <path d="M 730 208 L 730 395 L 635 395" fill="none" stroke="#334155" stroke-width="2"/>
-          
-          <!-- 抽头 2 (电阻后侧 x=800)：垂直向下引至 y=435，向左进入 Meter 基底 (x=635, y=435) -->
-          <path d="M 800 208 L 800 435 L 635 435" fill="none" stroke="#334155" stroke-width="2"/>
+          <!-- E. 差分采样下行回路 (白色导线) -->
+          <path d="M 730 208 L 730 395 L 635 395" fill="none" stroke="#ffffff" stroke-width="2"/>
+          <path d="M 800 208 L 800 435 L 635 435" fill="none" stroke="#ffffff" stroke-width="2"/>
 
-          <!-- F. 橙色梯形 Meter (尖端在 x=510, y=419，基底在 x=635, y: 375~463) -->
-          <polygon points="510,419 635,375 635,463" fill="#f59e0b" stroke="#b45309" stroke-width="2.5"/>
-          <text x="585" y="423" font-size="13" font-weight="900" fill="#78350f" text-anchor="middle">Meter</text>
+          <!-- F. 梯形 Meter (尖端在 x=510, y=419，基底在 x=635, y: 375~463) -->
+          <polygon points="510,419 635,375 635,463" fill="#d97706" stroke="#f59e0b" stroke-width="2"/>
+          <text x="585" y="423" font-size="13" font-weight="900" fill="#ffffff" text-anchor="middle">Meter</text>
 
-          <!-- G. 从 Meter 尖端连至 Filter 方框右侧 (x=510 -> x=458, y=419) -->
-          <line x1="510" y1="419" x2="458" y2="419" stroke="#334155" stroke-width="2.2"/>
+          <!-- G. 从 Meter 尖端连至 Filter 方框右侧 -->
+          <line x1="510" y1="419" x2="458" y2="419" stroke="#ffffff" stroke-width="2"/>
 
-          <!-- H. 滤波阶跃特性符号方框 (Filter Box，位于 x=420~458, y=404~434) -->
-          <rect x="420" y="404" width="38" height="30" rx="3" fill="#ffffff" stroke="#334155" stroke-width="2"/>
-          <!-- 阶跃滤波特征符号：高平 -> 阶跃下跌 -> 低平 -->
-          <path d="M 426 411 L 435 411 L 443 427 L 452 427" fill="none" stroke="#0f172a" stroke-width="2.2"/>
+          <!-- H. 滤波阶跃特性符号方框 (Filter Box) -->
+          <g class="svg-filter-box">
+            <rect x="420" y="404" width="38" height="30" rx="3" fill="#32353a" stroke="#64748b" stroke-width="1.8"/>
+            <path d="M 426 411 L 435 411 L 443 427 L 452 427" fill="none" stroke="#ffffff" stroke-width="2.2"/>
+          </g>
 
-          <!-- I. 从 Filter 方框左侧直达 Meter Reading 回读框的箭头线 (x=420 -> x=250, y=419 严格共轴) -->
-          <line x1="420" y1="419" x2="250" y2="419" stroke="#334155" stroke-width="2.5" marker-end="url(#arrow-left)"/>
+          <!-- I. 从 Filter 方框左侧直达 Meter Reading 回读框的箭头线 (白色发光导线) -->
+          <line x1="420" y1="419" x2="250" y2="419" stroke="#ffffff" stroke-width="2.5" marker-end="url(#arrow-left)"/>
 
-          <!-- J. 限流保护总线 (从 Source/Sink Limit 汇入紫色圆圈左侧) -->
-          <path d="M 364 135 L 395 135 L 395 185 L 435 185" fill="none" stroke="#1d4ed8" stroke-width="2.2"/>
-          <path d="M 364 230 L 435 230" fill="none" stroke="#2563eb" stroke-width="2.2"/>
+          <!-- J. 限流保护总线 (从 Source/Sink Limit 汇入，亮蓝色导线) -->
+          <path d="M 364 135 L 395 135 L 395 185 L 435 185" fill="none" stroke="#3b82f6" stroke-width="2.2"/>
+          <path d="M 364 230 L 435 230" fill="none" stroke="#60a5fa" stroke-width="2.2"/>
         </svg>
 
         <!-- ================= 3. 控件层 (舒展布局，层次分明) ================= -->
@@ -697,8 +738,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* 容器居中与自适应外框 */
-/* 容器居中与自适应外框：带有细微工业点阵网格与视口防溢出 */
+/* ================= 1. 全局容器：暗黑工作台 (匹配参考图工业深灰背景) ================= */
 .dc-vi-container {
   width: 100%;
   position: relative;
@@ -710,15 +750,16 @@ onUnmounted(() => {
   min-height: calc(100vh - 120px);
   padding: 16px 20px 48px;
   user-select: none;
-  background-color: #f8fafc;
+  background-color: #1e2022;
   background-image: 
-    radial-gradient(#cbd5e1 1.2px, transparent 1.2px),
-    radial-gradient(#cbd5e1 1.2px, #f8fafc 1.2px);
+    radial-gradient(rgba(255, 255, 255, 0.05) 1.2px, transparent 1.2px),
+    radial-gradient(rgba(255, 255, 255, 0.05) 1.2px, #1e2022 1.2px);
   background-size: 24px 24px;
   background-position: 0 0, 12px 12px;
+  color: #f1f5f9;
 }
 
-/* ================= 悬浮缩放与平移控制 HUD (Floating Zoom HUD) ================= */
+/* ================= 悬浮缩放与平移控制 HUD (Dark Glass 质感) ================= */
 .zoom-hud-panel {
   position: sticky;
   top: 10px;
@@ -729,30 +770,30 @@ onUnmounted(() => {
   gap: 6px;
   margin-bottom: 14px;
   padding: 6px 14px;
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(8px);
-  border: 1px solid #cbd5e1;
+  background: rgba(33, 36, 40, 0.88);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 24px;
-  box-shadow: 0 4px 14px -2px rgba(15, 23, 42, 0.1), 0 2px 6px -1px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 8px 24px -2px rgba(0, 0, 0, 0.5);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #f1f5f9;
 }
 
 .zoom-hud-panel:hover {
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 8px 20px -3px rgba(15, 23, 42, 0.15);
-  border-color: #94a3b8;
+  background: rgba(38, 41, 46, 0.96);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .zoom-hud-panel.ctrl-active {
-  border-color: #10b981;
-  background: rgba(240, 253, 244, 0.95);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25), 0 8px 20px -3px rgba(5, 150, 105, 0.2);
+  border-color: #22c55e;
+  background: rgba(20, 36, 26, 0.95);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.3), 0 8px 20px -3px rgba(34, 197, 94, 0.2);
 }
 
 .zoom-hud-panel.space-active {
-  border-color: #3b82f6;
-  background: rgba(239, 246, 255, 0.95);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+  border-color: #38bdf8;
+  background: rgba(15, 30, 48, 0.95);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.3);
 }
 
 .hud-controls {
@@ -768,28 +809,28 @@ onUnmounted(() => {
   width: 28px;
   height: 28px;
   border-radius: 6px;
-  border: 1px solid transparent;
-  background: #f1f5f9;
-  color: #334155;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #2b2e33;
+  color: #cbd5e1;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .hud-btn:hover {
-  background: #e2e8f0;
-  color: #0f172a;
-  border-color: #cbd5e1;
+  background: #383b42;
+  color: #ffffff;
+  border-color: #64748b;
 }
 
 .hud-scale-btn {
-  border: 1px solid #e2e8f0;
-  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #2b2e33;
   padding: 3px 10px;
   border-radius: 6px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
   font-weight: 700;
-  color: #0f172a;
+  color: #ffffff;
   cursor: pointer;
   min-width: 52px;
   text-align: center;
@@ -797,15 +838,15 @@ onUnmounted(() => {
 }
 
 .hud-scale-btn:hover {
-  background: #f8fafc;
-  border-color: #3b82f6;
-  color: #2563eb;
+  background: #383b42;
+  border-color: #38bdf8;
+  color: #38bdf8;
 }
 
 .hud-divider {
   width: 1px;
   height: 18px;
-  background-color: #cbd5e1;
+  background-color: rgba(255, 255, 255, 0.15);
   margin: 0 2px;
 }
 
@@ -814,16 +855,16 @@ onUnmounted(() => {
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  color: #64748b;
+  color: #94a3b8;
 }
 
 .hud-key-tag {
   display: inline-block;
   padding: 1px 6px;
   border-radius: 4px;
-  background: #e2e8f0;
-  border: 1px solid #cbd5e1;
-  color: #334155;
+  background: #2b2e33;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
   font-size: 10px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-weight: 700;
@@ -831,10 +872,10 @@ onUnmounted(() => {
 }
 
 .hud-key-tag.tag-active {
-  background: #10b981;
-  border-color: #059669;
+  background: #22c55e;
+  border-color: #16a34a;
   color: #ffffff;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
 }
 
 .hud-tip-text {
@@ -842,7 +883,7 @@ onUnmounted(() => {
 }
 
 .hud-dot {
-  color: #94a3b8;
+  color: #64748b;
   font-weight: bold;
 }
 
@@ -852,77 +893,49 @@ onUnmounted(() => {
   gap: 5px;
   padding: 1px 7px;
   border-radius: 12px;
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
+  background: #2b2e33;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   font-size: 10px;
   font-weight: 600;
-  color: #64748b;
+  color: #94a3b8;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .hud-mode-pill:hover {
-  background: #e2e8f0;
-  color: #0f172a;
+  background: #383b42;
+  color: #ffffff;
 }
 
 .hud-mode-pill.mode-autofit {
-  background: #eff6ff;
-  border-color: #93c5fd;
-  color: #1d4ed8;
+  background: rgba(14, 165, 233, 0.15);
+  border-color: #38bdf8;
+  color: #38bdf8;
 }
 
 .mode-led {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #94a3b8;
+  background: #64748b;
   transition: all 0.15s ease;
 }
 
 .hud-mode-pill.mode-autofit .mode-led {
-  background: #2563eb;
-  box-shadow: 0 0 6px rgba(37, 99, 235, 0.6);
+  background: #38bdf8;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.8);
 }
 
-/* 工具栏缩放 Badge */
-.zoom-badge-pill {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 11px;
-  font-weight: 700;
-  color: #0f172a;
-  background: #ffffff;
-  border: 1px solid #94a3b8;
-  padding: 2px 7px;
-  border-radius: 4px;
-  cursor: pointer;
-  user-select: none;
-  min-width: 44px;
-  text-align: center;
-  transition: all 0.15s ease;
-}
-
-.zoom-badge-pill:hover {
-  border-color: #2563eb;
-  color: #2563eb;
-  background: #eff6ff;
-}
-
-.toolbar-divider.mini {
-  height: 14px;
-  margin: 0 2px;
-}
-
-/* 机台机箱底盘：支持平滑缩放与变换原点 */
+/* ================= 2. 机台机箱底盘 ================= */
 .ate-instrument-chassis {
   width: 100%;
   max-width: 1100px;
-  background-color: #cbd5e1;
-  border: 2px solid #64748b;
+  background-color: #26282b;
+  border: 1px solid #3c4046;
   border-radius: 6px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.05);
   overflow: hidden;
-  color: #0f172a;
+  color: #ffffff;
   transform-origin: 50% 50%;
   cursor: default;
 }
@@ -935,42 +948,50 @@ onUnmounted(() => {
   cursor: grabbing !important;
 }
 
-/* 顶部工具栏 */
+/* ================= 3. 顶部操作工具栏 ================= */
 .ate-toolbar {
-  background: linear-gradient(to right, #e2e8f0, #f1f5f9, #e2e8f0);
-  border-bottom: 1px solid #94a3b8;
+  background: linear-gradient(to right, #1f2124, #26282b, #1f2124);
+  border-bottom: 1px solid #383b40;
   padding: 10px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   font-size: 12px;
   font-weight: 600;
+  color: #e2e8f0;
 }
 
 .toolbar-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
 
 .site-box {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid #94a3b8;
+  background: #2e3136;
+  border: 1px solid #484c54;
   padding: 2px 8px;
   border-radius: 4px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .site-box .label {
-  color: #334155;
+  color: #94a3b8;
   font-weight: 700;
 }
 
-.site-select {
-  width: 65px;
+:deep(.site-select .el-input__wrapper) {
+  background-color: #222428 !important;
+  box-shadow: none !important;
+  border: 1px solid #484c54 !important;
+  color: #ffffff !important;
+}
+
+:deep(.site-select .el-input__inner) {
+  color: #ffffff !important;
 }
 
 .master-checkbox {
@@ -978,14 +999,14 @@ onUnmounted(() => {
   align-items: center;
   gap: 6px;
   cursor: pointer;
-  color: #1e293b;
+  color: #cbd5e1;
   font-weight: 700;
 }
 
 .toolbar-divider {
   width: 1px;
   height: 20px;
-  background-color: #cbd5e1;
+  background-color: #383b40;
 }
 
 .tool-icons {
@@ -1000,18 +1021,59 @@ onUnmounted(() => {
   justify-content: center;
   width: 28px;
   height: 28px;
-  background: transparent;
-  border: 1px solid transparent;
+  background: #2e3136;
+  border: 1px solid #484c54;
   border-radius: 4px;
-  color: #475569;
+  color: #cbd5e1;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .tool-icon-btn:hover {
-  background: #cbd5e1;
-  color: #0f172a;
-  border-color: #94a3b8;
+  background: #3c4047;
+  color: #ffffff;
+  border-color: #64748b;
+}
+
+.zoom-badge-pill {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffffff;
+  background: #2e3136;
+  border: 1px solid #484c54;
+  padding: 2px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+  min-width: 44px;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+
+.zoom-badge-pill:hover {
+  border-color: #38bdf8;
+  color: #38bdf8;
+  background: #1e293b;
+}
+
+.toolbar-divider.mini {
+  height: 14px;
+  margin: 0 2px;
+}
+
+.copy-btn {
+  background: #2e3136;
+  border: 1px solid #3b82f6;
+  color: #60a5fa;
+  font-weight: 700;
+  border-radius: 4px;
+  padding: 4px 12px;
+}
+
+.copy-btn:hover {
+  background: #1e3a8a;
+  color: #ffffff;
 }
 
 .toolbar-right {
@@ -1026,8 +1088,9 @@ onUnmounted(() => {
   gap: 6px;
   padding: 3px 10px;
   border-radius: 4px;
-  background-color: #cbd5e1;
-  color: #334155;
+  background-color: #2b2e33;
+  border: 1px solid #44474e;
+  color: #94a3b8;
   font-weight: 600;
   font-size: 11px;
 }
@@ -1036,8 +1099,8 @@ onUnmounted(() => {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: #10b981;
-  box-shadow: 0 0 6px #10b981;
+  background-color: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
 }
 
 .hardware-id {
@@ -1046,16 +1109,17 @@ onUnmounted(() => {
   font-size: 11px;
 }
 
-/* ================= 工作画布 ================= */
+/* ================= 4. 工作画布 (彻底暗黑 ATE 科技风，匹配参考图) ================= */
 .unified-canvas {
   position: relative;
-  background-color: #e2e8f0;
+  background-color: #26282b;
   min-height: 665px;
   width: 100%;
   overflow: hidden;
+  color: #ffffff;
 }
 
-/* 拓扑 SVG */
+/* 拓扑 SVG：高对比白色导线 + 荧光发光 */
 .main-topology-svg {
   position: absolute;
   inset: 0;
@@ -1064,7 +1128,13 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
-/* 电流流动动画效果 */
+/* 白银色高对比导线 */
+.main-topology-svg line,
+.main-topology-svg path {
+  stroke: #ffffff;
+}
+
+/* 电流流动动画：鲜艳荧光翠绿发光 */
 @keyframes wireFlow {
   from {
     stroke-dashoffset: 20;
@@ -1075,20 +1145,43 @@ onUnmounted(() => {
 }
 
 .wire-active-flow {
-  stroke: #059669 !important;
+  stroke: #22c55e !important;
   stroke-width: 2.8 !important;
   stroke-dasharray: 6 3;
   animation: wireFlow 0.8s linear infinite;
+  filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.8));
 }
 
-/* 拟物风格卡片通用样式 */
+/* 压摆整形方块 [/‾] */
+.svg-slew-box rect {
+  fill: #32353a !important;
+  stroke: #64748b !important;
+}
+
+.svg-slew-box path {
+  stroke: #ffffff !important;
+}
+
+/* 滤波阶跃符号方块 */
+.svg-filter-box rect {
+  fill: #32353a !important;
+  stroke: #64748b !important;
+}
+
+.svg-filter-box path {
+  stroke: #ffffff !important;
+}
+
+/* ================= 5. 控件卡片与胶囊输入框 ================= */
 .card-box {
   position: absolute;
-  background: #f1f5f9;
-  border-radius: 4px;
+  background: rgba(38, 41, 46, 0.95);
+  border: 1px solid #4a4e56;
+  border-radius: 6px;
   padding: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
   z-index: 10;
+  color: #ffffff;
 }
 
 .card-header {
@@ -1101,7 +1194,7 @@ onUnmounted(() => {
 .card-title {
   font-size: 12px;
   font-weight: 700;
-  color: #0f172a;
+  color: #ffffff;
   letter-spacing: 0.02em;
 }
 
@@ -1113,22 +1206,22 @@ onUnmounted(() => {
 }
 
 .tag-blue {
-  background: #dbeafe;
-  color: #1e40af;
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.4);
 }
 
 .tag-indigo {
-  background: #e0e7ff;
-  color: #3730a3;
+  background: rgba(99, 102, 241, 0.2);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.4);
 }
 
-/* 纯净参数容器：简洁纯粹 */
 .card-body {
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
+  background: #1f2124;
+  border: 1px solid #36393f;
   border-radius: 4px;
   padding: 10px 12px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .param-row {
@@ -1136,17 +1229,18 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   font-size: 12px;
+  color: #e2e8f0;
 }
 
 .param-divider {
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid #33363b;
 }
 
 .param-label {
-  font-weight: 700;
-  color: #334155;
+  font-weight: 600;
+  color: #cbd5e1;
 }
 
 .param-value-wrap {
@@ -1157,14 +1251,14 @@ onUnmounted(() => {
 
 .sub-label {
   font-size: 11px;
-  color: #64748b;
+  color: #94a3b8;
   font-weight: 600;
 }
 
 .unit {
   font-size: 12px;
-  font-weight: 700;
-  color: #334155;
+  font-weight: 600;
+  color: #94a3b8;
 }
 
 /* 1. Source Current Limit 卡片 */
@@ -1172,7 +1266,8 @@ onUnmounted(() => {
   left: 24px;
   top: 24px;
   width: 340px;
-  border: 2px solid #2563eb;
+  border: 1.5px solid #3b82f6;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 10px rgba(59, 130, 246, 0.2);
 }
 
 /* 2. Sink Current Limit 卡片 */
@@ -1180,10 +1275,11 @@ onUnmounted(() => {
   left: 24px;
   top: 180px;
   width: 340px;
-  border: 2px solid #1d4ed8;
+  border: 1.5px solid #6366f1;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 10px rgba(99, 102, 241, 0.2);
 }
 
-/* 3. Meter Reading 回读框行 */
+/* 3. Meter Reading 回读框 */
 .meter-reading-box {
   position: absolute;
   left: 24px;
@@ -1203,7 +1299,7 @@ onUnmounted(() => {
 .reading-label {
   font-size: 12px;
   font-weight: 700;
-  color: #1e293b;
+  color: #ffffff;
   white-space: nowrap;
 }
 
@@ -1218,19 +1314,20 @@ onUnmounted(() => {
   height: 28px;
   font-size: 14px;
   font-weight: 700;
-  background: #dbe2ea !important;
-  color: #0f172a;
-  border: 1px solid #475569;
-  box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.2);
+  background: #1a2230 !important;
+  color: #38bdf8 !important;
+  border: 1.5px solid #0284c7 !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5), 0 0 8px rgba(56, 189, 248, 0.25);
   text-align: right;
   padding: 0 6px;
+  border-radius: 4px;
 }
 
 .reading-unit {
   font-size: 12px;
   font-weight: 700;
   font-style: italic;
-  color: #1e293b;
+  color: #38bdf8;
 }
 
 /* 4. 采样控制面板 */
@@ -1238,7 +1335,7 @@ onUnmounted(() => {
   left: 24px;
   top: 475px;
   width: 220px;
-  border: 2px solid #2563eb;
+  border: 1.5px solid #3b82f6;
 }
 
 .checkbox-label {
@@ -1247,7 +1344,7 @@ onUnmounted(() => {
   gap: 6px;
   font-size: 12px;
   font-weight: 600;
-  color: #334155;
+  color: #cbd5e1;
   cursor: pointer;
 }
 
@@ -1268,23 +1365,23 @@ onUnmounted(() => {
 }
 
 .led-ready {
-  background-color: #94a3b8;
+  background-color: #64748b;
 }
 
 .led-busy {
   background-color: #f59e0b;
-  box-shadow: 0 0 6px #f59e0b;
+  box-shadow: 0 0 8px #f59e0b;
 }
 
 .led-pulse-green {
-  background-color: #10b981;
+  background-color: #22c55e;
   animation: pulseLed 0.8s infinite;
 }
 
 @keyframes pulseLed {
   0%, 100% {
     opacity: 1;
-    filter: drop-shadow(0 0 4px #10b981);
+    filter: drop-shadow(0 0 6px #22c55e);
   }
   50% {
     opacity: 0.3;
@@ -1296,15 +1393,15 @@ onUnmounted(() => {
 }
 
 .text-ready {
-  color: #64748b;
+  color: #94a3b8;
 }
 
 .text-busy {
-  color: #b45309;
+  color: #fbbf24;
 }
 
 .text-looping {
-  color: #047857;
+  color: #4ade80;
 }
 
 .btn-grid {
@@ -1312,7 +1409,7 @@ onUnmounted(() => {
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   padding-top: 6px;
-  border-top: 1px solid #cbd5e1;
+  border-top: 1px solid #33363b;
   margin-top: 4px;
 }
 
@@ -1325,6 +1422,7 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 4px;
   z-index: 10;
+  color: #e2e8f0;
 }
 
 .filter-row {
@@ -1349,6 +1447,7 @@ onUnmounted(() => {
   gap: 8px;
   z-index: 10;
   font-size: 12px;
+  color: #e2e8f0;
 }
 
 .config-row {
@@ -1359,24 +1458,25 @@ onUnmounted(() => {
 
 .label-bold {
   font-weight: 700;
-  color: #334155;
+  color: #e2e8f0;
 }
 
-/* 7. 通道配置与运行模式联合主控区 (Pin, Mode, Bandwidth Setting, DIB Channel) */
+/* 7. 通道配置与运行模式联合主控区 */
 .channel-master-bar {
   position: absolute;
   left: 390px;
   top: 20px;
   right: 24px;
-  background: rgba(248, 250, 252, 0.95);
-  border: 2px solid #cbd5e1;
+  background: rgba(33, 36, 40, 0.95);
+  border: 1px solid #484c54;
   border-radius: 6px;
   padding: 8px 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: space-between;
   z-index: 10;
+  color: #ffffff;
 }
 
 .bar-item {
@@ -1388,14 +1488,14 @@ onUnmounted(() => {
 .bar-label {
   font-size: 12px;
   font-weight: 700;
-  color: #1e293b;
+  color: #ffffff;
   white-space: nowrap;
 }
 
 .pin-select {
   width: 110px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  color: #1e3a8a;
+  color: #60a5fa !important;
   font-weight: 700;
 }
 
@@ -1412,12 +1512,12 @@ onUnmounted(() => {
 .bar-divider {
   width: 1px;
   height: 18px;
-  background-color: #cbd5e1;
+  background-color: #44474e;
 }
 
 .dib-label {
   font-size: 11px;
-  color: #475569;
+  color: #94a3b8;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -1426,15 +1526,15 @@ onUnmounted(() => {
   font-size: 12px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-weight: 700;
-  color: #1e3a8a;
-  background: #ffffff;
+  color: #38bdf8;
+  background: #1e293b;
   padding: 2px 8px;
   border-radius: 3px;
-  border: 1px solid #cbd5e1;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  border: 1px solid #0284c7;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.2);
 }
 
-/* 8. 中央紫色控制圆 (Source Voltage Hub) */
+/* 8. 中央控制圆 (Source Voltage Hub) 科技暗化 */
 .purple-circle-hub {
   position: absolute;
   left: 430px;
@@ -1442,15 +1542,15 @@ onUnmounted(() => {
   width: 176px;
   height: 176px;
   border-radius: 50%;
-  background-color: rgba(216, 180, 254, 0.88);
-  border: 2px solid #9333ea;
-  box-shadow: 0 4px 14px rgba(147, 51, 234, 0.25);
+  background: radial-gradient(circle, rgba(147, 51, 234, 0.25) 0%, rgba(24, 24, 38, 0.95) 100%);
+  border: 2px solid #a855f7;
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.35);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 12px;
-  color: #0f172a;
+  color: #ffffff;
   z-index: 10;
 }
 
@@ -1459,7 +1559,7 @@ onUnmounted(() => {
   font-weight: 900;
   letter-spacing: 0.02em;
   margin-bottom: 6px;
-  color: #3b0764;
+  color: #e9d5ff;
 }
 
 .hub-body {
@@ -1475,11 +1575,12 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   font-size: 12px;
+  color: #e2e8f0;
 }
 
 .hub-label {
   font-weight: 700;
-  color: #3b0764;
+  color: #c084fc;
 }
 
 .hub-input-wrap {
@@ -1496,56 +1597,62 @@ onUnmounted(() => {
   font-size: 12px;
   cursor: pointer;
   font-weight: 700;
-  color: #3b0764;
-  background: rgba(243, 232, 255, 0.95);
+  color: #f3e8ff;
+  background: rgba(147, 51, 234, 0.25);
   padding: 2px 10px;
-  border-radius: 3px;
-  border: 1px solid #c084fc;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  border: 1px solid #a855f7;
   transition: all 0.15s ease;
 }
 
 .gate-toggle-box:hover {
-  background: #f3e8ff;
+  background: rgba(147, 51, 234, 0.4);
 }
 
-/* ================= 通用控件样式 ================= */
+/* ================= 6. 通用暗黑控件样式 (完全匹配照片风格) ================= */
 .ate-input {
-  background: #ffffff;
-  border: 1px solid #475569;
-  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.15);
+  background: #383b40;
+  border: 1px solid #52565c;
+  color: #ffffff;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-weight: 700;
+  font-weight: 600;
   text-align: right;
-  padding: 2px 6px;
+  padding: 3px 8px;
   font-size: 12px;
-  border-radius: 2px;
+  border-radius: 4px;
   outline: none;
   width: 80px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .ate-input:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 1px #2563eb, inset 1px 1px 2px rgba(0, 0, 0, 0.1);
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 1px #38bdf8, inset 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 .ate-select {
-  background: #ffffff;
-  border: 1px solid #475569;
+  background: #383b40;
+  border: 1px solid #52565c;
+  color: #ffffff;
   font-size: 12px;
   font-weight: 600;
-  padding: 2px 4px;
-  border-radius: 2px;
+  padding: 3px 8px;
+  border-radius: 4px;
   outline: none;
   cursor: pointer;
 }
 
+.ate-select:focus {
+  border-color: #38bdf8;
+}
+
 .text-emerald {
-  color: #065f46;
+  color: #4ade80 !important;
 }
 
 .text-blue {
-  color: #1e3a8a;
+  color: #60a5fa !important;
 }
 
 .w-14 {
@@ -1556,18 +1663,18 @@ onUnmounted(() => {
   width: 64px;
 }
 
-/* 拟物风格按键 */
+/* 暗色按键 */
 .ate-btn {
-  background: linear-gradient(to bottom, #ffffff, #cbd5e1);
-  border: 1px solid #475569;
-  box-shadow: 1px 1px 0px #ffffff inset, -1px -1px 0px #94a3b8 inset, 1px 2px 2px rgba(0, 0, 0, 0.15);
+  background: #2e3136;
+  border: 1px solid #484c54;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   font-size: 12px;
   font-weight: 700;
   padding: 4px 10px;
-  border-radius: 3px;
+  border-radius: 4px;
   cursor: pointer;
-  color: #0f172a;
-  transition: all 0.08s ease;
+  color: #ffffff;
+  transition: all 0.12s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1575,45 +1682,46 @@ onUnmounted(() => {
 }
 
 .ate-btn:hover {
-  background: linear-gradient(to bottom, #ffffff, #e2e8f0);
+  background: #3b3f46;
+  border-color: #64748b;
 }
 
 .ate-btn:active {
-  background: #94a3b8;
-  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.3);
+  background: #222428;
   transform: translateY(1px);
 }
 
-.copy-btn {
-  color: #1e3a8a;
-  padding: 4px 12px;
+.read-btn {
+  color: #38bdf8;
+  border-color: #0284c7;
 }
 
-.read-btn {
-  color: #1d4ed8;
+.read-btn:hover {
+  background: #0c4a6e;
+  color: #ffffff;
 }
 
 .active-loop {
   background: #16a34a !important;
   color: #ffffff !important;
-  border-color: #15803d !important;
-  box-shadow: 0 0 8px rgba(22, 163, 74, 0.6) !important;
+  border-color: #22c55e !important;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.6) !important;
 }
 
 .mb-2 {
   margin-bottom: 8px;
 }
 
-/* ================= 底部状态栏 ================= */
+/* ================= 7. 底部状态栏 ================= */
 .ate-footer {
-  background-color: #cbd5e1;
-  border-top: 1px solid #94a3b8;
+  background-color: #1f2124;
+  border-top: 1px solid #33363b;
   padding: 8px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   font-size: 12px;
-  color: #334155;
+  color: #94a3b8;
 }
 
 .footer-left {
@@ -1624,12 +1732,12 @@ onUnmounted(() => {
 
 .status-title {
   font-weight: 700;
-  color: #1e293b;
+  color: #ffffff;
 }
 
 .status-msg {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  color: #1e3a8a;
+  color: #38bdf8;
   font-weight: 600;
 }
 
