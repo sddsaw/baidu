@@ -33,10 +33,10 @@ export interface UsePanzoomOptions {
    * 初始化挂载时是否自动根据当前容器宽度自适应，默认 true
    */
   autoFitOnInit?: boolean
-  /**
-   * 排除拖拽平移的元素选择器（默认自动排除各类输入框、下拉框、按钮等，确保表单交互完全正常）
-   */
+  /** 排除拖拽平移的元素选择器（默认自动排除各类输入框、下拉框、按钮等，确保表单交互完全正常） */
   excludeSelector?: string
+  /** 悬浮控制栏/标题栏选择器（默认 '.zoom-hud-panel'），若存在则自适应高度时扣除其高度，若无则不扣除 */
+  hudSelector?: string
   /** 缩放比例改变时的回调 */
   onScaleChange?: (scale: number) => void
   /** 平移位置改变时的回调 */
@@ -102,6 +102,7 @@ export function usePanzoom(
     autoFitOnResize = true,
     autoFitOnInit = true,
     excludeSelector = 'input, select, textarea, button, a, [role="button"], .el-select, .el-select-dropdown, .el-input, .el-button, .el-checkbox, .el-switch, .ate-btn, .ate-input, .ate-select, .no-panzoom',
+    hudSelector = '.zoom-hud-panel',
     onScaleChange,
     onPanChange
   } = options
@@ -286,9 +287,9 @@ export function usePanzoom(
 
     // 3. 计算高度容纳比（长高双向自适应约束，确保上下左右无任何截断）
     const containerInnerHeight = containerEl.clientHeight - paddingTop - paddingBottom
-    // 动态获取 HUD 悬浮面板占用高度，若无则按默认 48px
-    const hudEl = containerEl.querySelector('.zoom-hud-panel') as HTMLElement | null
-    const hudHeight = hudEl ? hudEl.offsetHeight + 10 : 48
+    // 动态获取悬浮控制栏占用高度，若无则不扣除（自动适配无控制栏或不同控制栏的项目）
+    const hudEl = hudSelector ? (containerEl.querySelector(hudSelector) as HTMLElement | null) : null
+    const hudHeight = hudEl ? hudEl.offsetHeight + 10 : 0
     const availableHeight = Math.max(containerInnerHeight - hudHeight, 20)
     const designHeight = baseHeight || 680
 
