@@ -80,7 +80,7 @@ export function usePanzoom(
     doubleClickReset = true,
     autoFitOnResize = true,
     autoFitOnInit = true,
-    excludeSelector = 'input, select, textarea, button, a, [role="button"], .el-select, .el-input, .el-button, .ate-btn, .ate-input, .ate-select',
+    excludeSelector = 'input, select, textarea, button, a, [role="button"], .el-select, .el-input, .el-button',
     hudSelector = '.zoom-hud-panel',
     onDismissOverlays,
     onScaleChange,
@@ -205,7 +205,6 @@ export function usePanzoom(
   // 鼠标移动与松开
   const handlePointerMove = (event: PointerEvent) => {
     if (!panzoom.value || !isPanning.value) return
-    dismissAllOverlays()
     isAutoFit.value = false
     panzoom.value.handleMove(event)
   }

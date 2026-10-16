@@ -1675,18 +1675,6 @@ onUnmounted(() => {
 }
 
 /* ================= 6. 通用暗黑控件与 el-select 定制样式 ================= */
-.ate-select {
-  background: #383b40;
-  border: 1px solid #52565c;
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 4px;
-  outline: none;
-  cursor: pointer;
-}
-
 :deep(.ate-el-select) {
   display: inline-flex;
   vertical-align: middle;
