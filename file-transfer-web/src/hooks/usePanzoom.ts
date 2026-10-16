@@ -37,6 +37,8 @@ export interface UsePanzoomOptions {
   excludeSelector?: string
   /** 悬浮控制栏/标题栏选择器（默认 '.zoom-hud-panel'），若存在则自适应高度时扣除其高度，若无则不扣除 */
   hudSelector?: string
+  /** 画布平移、缩放、调整尺寸时触发的浮层关闭自定义回调 */
+  onDismissOverlays?: () => void
   /** 缩放比例改变时的回调 */
   onScaleChange?: (scale: number) => void
   /** 平移位置改变时的回调 */
@@ -68,6 +70,8 @@ export interface UsePanzoomReturn {
   reset: () => void
   /** 自适应容器（核心：根据容器当前尺寸自动计算最适比例并完整展示） */
   fitToContainer: () => void
+  /** 全场景主动收起所有打开中的下拉选项列表、弹出菜单与浮层 */
+  dismissAllOverlays: () => void
 }
 
 /**
@@ -103,6 +107,7 @@ export function usePanzoom(
     autoFitOnInit = true,
     excludeSelector = 'input, select, textarea, button, a, [role="button"], .el-select, .el-select-dropdown, .el-input, .el-button, .el-checkbox, .el-switch, .ate-btn, .ate-input, .ate-select, .no-panzoom',
     hudSelector = '.zoom-hud-panel',
+    onDismissOverlays,
     onScaleChange,
     onPanChange
   } = options
@@ -154,6 +159,82 @@ export function usePanzoom(
     }
   }
 
+  /**
+   * 全场景浮层与下拉选项主动收起器 (Dismiss all overlays & dropdown menus)
+   * 触发时机：平移拖拽开始、滚轮缩放、窗口拉伸、双击复位、点击画布空白处等
+   * 效果：
+   * 1. 触发用户自定义的 onDismissOverlays 回调；
+   * 2. 让当前聚焦的输入框/下拉框失焦，触发其原生的 blur/change 保存；
+   * 3. 模拟派发 Escape 键盘按键与 document 点击，触发 Element Plus / Ant Design 等 UI 库自动优雅收起下拉浮层；
+   * 4. 兜底隐藏 Teleport 到 document.body 的浮层元素，杜绝任何浮层脱节悬空 Bug。
+   */
+  const dismissAllOverlays = () => {
+    // 1. 如果有自定义回调，先执行
+    if (onDismissOverlays) {
+      try {
+        onDismissOverlays()
+      } catch {
+        // ignore
+      }
+    }
+
+    // 2. 让当前聚焦的输入框/下拉框失焦，触发其原生的 blur/change 保存
+    const activeEl = document.activeElement as HTMLElement | null
+    if (
+      activeEl &&
+      (activeEl.tagName === 'INPUT' ||
+        activeEl.tagName === 'TEXTAREA' ||
+        activeEl.tagName === 'SELECT' ||
+        activeEl.isContentEditable ||
+        activeEl.classList.contains('el-select__input') ||
+        activeEl.closest('.el-select') ||
+        activeEl.closest('.ant-select'))
+    ) {
+      activeEl.blur()
+    }
+
+    // 3. 模拟派发 Escape 键盘事件：绝大多数现代前端 UI 库（Element Plus, Ant Design, Naive UI, Radix 等）
+    // 均在全局监听了 Escape 键来关闭当前打开的下拉选项菜单、浮动气泡
+    try {
+      const escEvent = new KeyboardEvent('keydown', {
+        key: 'Escape',
+        code: 'Escape',
+        keyCode: 27,
+        which: 27,
+        bubbles: true,
+        cancelable: true
+      })
+      document.dispatchEvent(escEvent)
+    } catch {
+      // 容错处理
+    }
+
+    // 4. 模拟向 document 派发点击事件，触发第三方 UI 库的 clickoutside 指令
+    try {
+      const pointerDownEvt = new PointerEvent('pointerdown', { bubbles: true, cancelable: true })
+      document.dispatchEvent(pointerDownEvt)
+      const clickEvt = new MouseEvent('click', { bubbles: true, cancelable: true })
+      document.dispatchEvent(clickEvt)
+    } catch {
+      // 容错处理
+    }
+
+    // 5. 兜底保护：直接定位页面上所有通过 Teleport 挂载到 body 上的浮层（Element Plus, Ant Design 等），强制隐藏
+    try {
+      const openPoppers = document.querySelectorAll<HTMLElement>(
+        '.el-popper:not(.is-pure), .el-select__popper, .ant-select-dropdown, [data-popper-placement]'
+      )
+      openPoppers.forEach((popper) => {
+        if (popper.style.display !== 'none') {
+          popper.style.display = 'none'
+          popper.setAttribute('aria-hidden', 'true')
+        }
+      })
+    } catch {
+      // 容错处理
+    }
+  }
+
   // 核心：滚轮缩放事件处理
   const handleWheel = (event: WheelEvent) => {
     if (!panzoom.value) return
@@ -165,6 +246,9 @@ export function usePanzoom(
 
     // 拦截浏览器默认的缩放行为与页面滚动
     event.preventDefault()
+
+    // 缩放视口的一瞬间，立即收起所有下拉菜单与浮层并保存输入
+    dismissAllOverlays()
 
     // 用户主动滚轮缩放，离开自动自适应模式
     isAutoFit.value = false
@@ -184,19 +268,10 @@ export function usePanzoom(
     const target = event.target as HTMLElement | null
     if (!target) return
 
-    // 核心体验优化：若当前有输入框/文本域处于聚焦状态，只要用户点击了非当前输入框区域（如画布空白处、机台底盘），
-    // 立即主动触发 blur，确保输入框的 change/blur 校验与保存事件立刻触发，无需跑到画布外点击！
-    const activeEl = document.activeElement as HTMLElement | null
-    if (
-      activeEl &&
-      activeEl !== target &&
-      !activeEl.contains(target) &&
-      (activeEl.tagName === 'INPUT' ||
-        activeEl.tagName === 'TEXTAREA' ||
-        activeEl.tagName === 'SELECT' ||
-        activeEl.isContentEditable)
-    ) {
-      activeEl.blur()
+    // 如果点击的不是正在操作的控件本身，立即主动收起下拉菜单并失焦保存
+    const isExcluded = excludeSelector ? Boolean(target.closest(excludeSelector)) : false
+    if (!isExcluded) {
+      dismissAllOverlays()
     }
 
     // 鼠标中键 (button 1) 始终允许平移
@@ -206,7 +281,7 @@ export function usePanzoom(
 
     // 如果是鼠标左键，且点击到了表单控件/排除选择器元素，则不启动平移
     if (!isMiddleMouse && !isSpaceDragging) {
-      if (excludeSelector && target.closest(excludeSelector)) {
+      if (isExcluded) {
         return
       }
     }
@@ -218,6 +293,8 @@ export function usePanzoom(
 
   const handlePointerMove = (event: PointerEvent) => {
     if (!panzoom.value || !isPanning.value) return
+    // 拖拽平移移动中，确保所有下拉菜单与浮层立刻收起
+    dismissAllOverlays()
     // 用户手动拖拽平移，标记离开默认自适应状态
     isAutoFit.value = false
     panzoom.value.handleMove(event)
@@ -239,6 +316,7 @@ export function usePanzoom(
     if (target && excludeSelector && target.closest(excludeSelector)) {
       return
     }
+    dismissAllOverlays()
     // 恢复自适应展示
     fitToContainer()
   }
@@ -246,6 +324,7 @@ export function usePanzoom(
   // 放大
   const zoomIn = (customStep?: number) => {
     if (!panzoom.value) return
+    dismissAllOverlays()
     isAutoFit.value = false
     panzoom.value.zoomIn({ step: customStep ?? step })
     updateState()
@@ -254,6 +333,7 @@ export function usePanzoom(
   // 缩小
   const zoomOut = (customStep?: number) => {
     if (!panzoom.value) return
+    dismissAllOverlays()
     isAutoFit.value = false
     panzoom.value.zoomOut({ step: customStep ?? step })
     updateState()
@@ -262,6 +342,7 @@ export function usePanzoom(
   // 缩放到指定比例
   const zoomTo = (targetScale: number) => {
     if (!panzoom.value) return
+    dismissAllOverlays()
     const clampedScale = Math.min(Math.max(targetScale, minScale), maxScale)
     panzoom.value.zoom(clampedScale, { animate: true })
     updateState()
@@ -270,6 +351,7 @@ export function usePanzoom(
   // 复位 (1.0 倍且居中)
   const reset = () => {
     if (!panzoom.value) return
+    dismissAllOverlays()
     isAutoFit.value = true
     panzoom.value.reset({ animate: true })
     updateState()
@@ -277,6 +359,7 @@ export function usePanzoom(
 
   // 自适应容器（核心修复：基于固定基准设计尺寸进行全精度等比计算，杜绝 500px 下被裁切）
   const fitToContainer = () => {
+    dismissAllOverlays()
     const targetEl = targetRef.value
     const containerEl = containerRef?.value || targetEl?.parentElement
     if (!targetEl || !containerEl || !panzoom.value) return
@@ -332,6 +415,7 @@ export function usePanzoom(
   // 处理 DOM 容器尺寸变动（通过 requestAnimationFrame 帧同步，不论是纯 DOM 容器拖拽还是窗口拉伸，均 60fps 丝滑贴合）
   const handleResize = () => {
     if (!autoFitOnResize) return
+    dismissAllOverlays()
     if (isAutoFit.value) {
       if (rAFId) cancelAnimationFrame(rAFId)
       rAFId = requestAnimationFrame(() => {
@@ -460,6 +544,7 @@ export function usePanzoom(
     zoomOut,
     zoomTo,
     reset,
-    fitToContainer
+    fitToContainer,
+    dismissAllOverlays
   }
 }
