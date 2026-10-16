@@ -401,8 +401,8 @@ export function usePanzoom(
 
     // 4. 默认最大不超过 1.0（在大屏下保持原始设计清晰度，避免模糊拉伸）
     fitScale = Math.min(fitScale, 1.0)
-    // 边界钳制 (clamp)
-    fitScale = Math.min(Math.max(Number(fitScale.toFixed(3)), minScale), maxScale)
+    // 边界钳制 (使用 floor 向下取整保留 3 位小数，确保任何极小像素下绝对不产生 1px 的超界溢出)
+    fitScale = Math.min(Math.max(Math.floor(fitScale * 1000) / 1000, minScale), maxScale)
 
     isAutoFit.value = true
 

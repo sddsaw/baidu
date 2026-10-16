@@ -538,6 +538,7 @@ const viewportRef = ref<HTMLElement | null>(null)
 const chassisRef = ref<HTMLElement | null>(null)
 
 const {
+  scale,
   scalePercent,
   isCtrlPressed,
   isSpacePressed,
@@ -546,7 +547,8 @@ const {
   zoomIn,
   zoomOut,
   reset: resetZoom,
-  fitToContainer
+  fitToContainer,
+  dismissAllOverlays
 } = usePanzoom(chassisRef, viewportRef, {
   baseWidth: 1100,
   baseHeight: 680,
@@ -558,6 +560,17 @@ const {
   doubleClickReset: true,
   autoFitOnResize: true,
   autoFitOnInit: true
+})
+
+// 暴露给场景测试台与父级调用
+defineExpose({
+  scale,
+  scalePercent,
+  isAutoFit,
+  isPanning,
+  fitToContainer,
+  resetZoom,
+  dismissAllOverlays
 })
 
 // --- 状态定义 ---
