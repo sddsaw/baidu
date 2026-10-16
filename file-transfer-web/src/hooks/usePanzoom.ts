@@ -184,6 +184,21 @@ export function usePanzoom(
     const target = event.target as HTMLElement | null
     if (!target) return
 
+    // 核心体验优化：若当前有输入框/文本域处于聚焦状态，只要用户点击了非当前输入框区域（如画布空白处、机台底盘），
+    // 立即主动触发 blur，确保输入框的 change/blur 校验与保存事件立刻触发，无需跑到画布外点击！
+    const activeEl = document.activeElement as HTMLElement | null
+    if (
+      activeEl &&
+      activeEl !== target &&
+      !activeEl.contains(target) &&
+      (activeEl.tagName === 'INPUT' ||
+        activeEl.tagName === 'TEXTAREA' ||
+        activeEl.tagName === 'SELECT' ||
+        activeEl.isContentEditable)
+    ) {
+      activeEl.blur()
+    }
+
     // 鼠标中键 (button 1) 始终允许平移
     const isMiddleMouse = event.button === 1
     // 空格键按下时允许平移
