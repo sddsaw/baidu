@@ -69,7 +69,7 @@
           <!-- Site 选择 -->
           <div class="site-box">
             <span class="label">Site:</span>
-            <el-select v-model="siteValue" size="small" class="site-select">
+            <el-select v-model="siteValue" size="small" class="ate-el-select site-select" popper-class="ate-dark-popper">
               <el-option :value="0" label="0" />
               <el-option :value="1" label="1" />
               <el-option :value="2" label="2" />
@@ -306,11 +306,11 @@
             <div class="param-row param-divider">
               <span class="param-label">Current Range:</span>
               <div class="param-value-wrap">
-                <select v-model="sourceRange" class="ate-select range-select">
-                  <option value="81">81</option>
-                  <option value="50">50</option>
-                  <option value="20">20</option>
-                </select>
+                <el-select v-model="sourceRange" size="small" class="ate-el-select range-select" popper-class="ate-dark-popper">
+                  <el-option value="81" label="81" />
+                  <el-option value="50" label="50" />
+                  <el-option value="20" label="20" />
+                </el-select>
                 <span class="unit">A</span>
               </div>
             </div>
@@ -386,11 +386,11 @@
         <div class="filter-ctrl-group">
           <div class="filter-row">
             <span class="label-bold">Filter:</span>
-            <select v-model="filterFreq" class="ate-select">
-              <option value="2539">2539</option>
-              <option value="1000">1000</option>
-              <option value="5000">5000</option>
-            </select>
+            <el-select v-model="filterFreq" size="small" class="ate-el-select filter-select" popper-class="ate-dark-popper">
+              <el-option value="2539" label="2539" />
+              <el-option value="1000" label="1000" />
+              <el-option value="5000" label="5000" />
+            </el-select>
             <span class="unit">Hz</span>
           </div>
           <label class="checkbox-label sub-checkbox">
@@ -403,18 +403,18 @@
         <div class="meter-config-group">
           <div class="config-row">
             <span class="label-bold">Mode:</span>
-            <select v-model="meterMode" class="ate-select font-bold" @change="onMeterModeChange">
-              <option value="Current">Current</option>
-              <option value="Voltage">Voltage</option>
-            </select>
+            <el-select v-model="meterMode" size="small" class="ate-el-select mode-select font-bold" popper-class="ate-dark-popper" @change="onMeterModeChange">
+              <el-option value="Current" label="Current" />
+              <el-option value="Voltage" label="Voltage" />
+            </el-select>
           </div>
           <div class="config-row">
             <span class="label-bold">Range:</span>
-            <select v-model="meterRange" class="ate-select font-bold font-mono">
-              <option value="101.25">101.25</option>
-              <option value="50.00">50.00</option>
-              <option value="10.00">10.00</option>
-            </select>
+            <el-select v-model="meterRange" size="small" class="ate-el-select range-select font-bold font-mono" popper-class="ate-dark-popper">
+              <el-option value="101.25" label="101.25" />
+              <el-option value="50.00" label="50.00" />
+              <el-option value="10.00" label="10.00" />
+            </el-select>
             <span class="unit">{{ meterUnit }}</span>
           </div>
         </div>
@@ -424,13 +424,13 @@
           <!-- Pin 下拉选择 -->
           <div class="bar-item">
             <span class="bar-label">Pin:</span>
-            <select v-model="selectedPin" class="ate-select pin-select">
-              <option value="vcc">vcc</option>
-              <option value="vdd">vdd</option>
-              <option value="vio">vio</option>
-              <option value="vcore">vcore</option>
-              <option value="vref">vref</option>
-            </select>
+            <el-select v-model="selectedPin" size="small" class="ate-el-select pin-select" popper-class="ate-dark-popper">
+              <el-option value="vcc" label="vcc" />
+              <el-option value="vdd" label="vdd" />
+              <el-option value="vio" label="vio" />
+              <el-option value="vcore" label="vcore" />
+              <el-option value="vref" label="vref" />
+            </el-select>
           </div>
 
           <div class="bar-divider"></div>
@@ -438,11 +438,11 @@
           <!-- Mode 工作模式下拉选择 -->
           <div class="bar-item">
             <span class="bar-label">Mode:</span>
-            <select v-model="viMode" class="ate-select mode-select">
-              <option value="High Impedance">High Impedance</option>
-              <option value="Voltage">Voltage</option>
-              <option value="Current">Current</option>
-            </select>
+            <el-select v-model="viMode" size="small" class="ate-el-select mode-select" popper-class="ate-dark-popper">
+              <el-option value="High Impedance" label="High Impedance" />
+              <el-option value="Voltage" label="Voltage" />
+              <el-option value="Current" label="Current" />
+            </el-select>
           </div>
 
           <div class="bar-divider"></div>
@@ -450,12 +450,12 @@
           <!-- Bandwidth Setting 环路带宽下拉选择 -->
           <div class="bar-item">
             <span class="bar-label">Bandwidth Setting:</span>
-            <select v-model="bandwidthSetting" class="ate-select bw-select">
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-            </select>
+            <el-select v-model="bandwidthSetting" size="small" class="ate-el-select bw-select" popper-class="ate-dark-popper">
+              <el-option value="1" label="1" />
+              <el-option value="2" label="2" />
+              <el-option value="3" label="3" />
+              <el-option value="4" label="4" />
+            </el-select>
           </div>
 
           <div class="bar-divider"></div>
@@ -1036,16 +1036,6 @@ onUnmounted(() => {
   font-weight: 700;
 }
 
-:deep(.site-select .el-input__wrapper) {
-  background-color: #222428 !important;
-  box-shadow: none !important;
-  border: 1px solid #484c54 !important;
-  color: #ffffff !important;
-}
-
-:deep(.site-select .el-input__inner) {
-  color: #ffffff !important;
-}
 
 .master-checkbox {
   display: flex;
@@ -1684,6 +1674,7 @@ onUnmounted(() => {
   box-shadow: 0 0 0 1px #38bdf8, inset 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
+/* ================= 6. 通用暗黑控件与 el-select 定制样式 ================= */
 .ate-select {
   background: #383b40;
   border: 1px solid #52565c;
@@ -1696,8 +1687,102 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
-.ate-select:focus {
-  border-color: #38bdf8;
+:deep(.ate-el-select) {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+:deep(.ate-el-select .el-select__wrapper) {
+  background-color: #383b40 !important;
+  box-shadow: 0 0 0 1px #52565c inset !important;
+  border-radius: 4px;
+  min-height: 22px !important;
+  height: 22px !important;
+  padding: 0 6px !important;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+:deep(.ate-el-select .el-select__wrapper:hover) {
+  box-shadow: 0 0 0 1px #64748b inset !important;
+}
+
+:deep(.ate-el-select .el-select__wrapper.is-focused) {
+  box-shadow: 0 0 0 1px #38bdf8 inset, 0 0 6px rgba(56, 189, 248, 0.4) !important;
+}
+
+:deep(.ate-el-select .el-select__selected-item) {
+  color: #ffffff !important;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 22px;
+}
+
+:deep(.ate-el-select.pin-select .el-select__selected-item) {
+  color: #60a5fa !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+:deep(.ate-el-select.font-mono .el-select__selected-item) {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+:deep(.ate-el-select .el-select__placeholder) {
+  color: #94a3b8 !important;
+  font-size: 12px;
+}
+
+:deep(.ate-el-select .el-select__caret) {
+  color: #94a3b8 !important;
+  font-size: 11px;
+}
+
+.site-select {
+  width: 60px;
+}
+
+.range-select {
+  width: 75px;
+}
+
+.filter-select {
+  width: 80px;
+}
+
+/* 全局暗黑下拉浮层风格 (适配 Element Plus Popper) */
+:global(.ate-dark-popper.el-popper) {
+  background: #25282c !important;
+  border: 1px solid #484c54 !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 6px !important;
+  padding: 4px 0 !important;
+}
+
+:global(.ate-dark-popper .el-select-dropdown__item) {
+  color: #e2e8f0 !important;
+  font-size: 12px !important;
+  padding: 0 10px !important;
+  height: 26px !important;
+  line-height: 26px !important;
+  border-radius: 3px;
+  margin: 1px 4px;
+}
+
+:global(.ate-dark-popper .el-select-dropdown__item.is-hovering) {
+  background-color: #383b40 !important;
+  color: #38bdf8 !important;
+}
+
+:global(.ate-dark-popper .el-select-dropdown__item.is-selected) {
+  background-color: rgba(56, 189, 248, 0.18) !important;
+  color: #38bdf8 !important;
+  font-weight: 700 !important;
+}
+
+:global(.ate-dark-popper .el-popper__arrow::before) {
+  background: #25282c !important;
+  border-color: #484c54 !important;
 }
 
 .text-emerald {

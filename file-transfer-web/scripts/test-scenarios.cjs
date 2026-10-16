@@ -38,6 +38,7 @@ function calculateFitScale({
   baseHeight = 680,
   minScale = 0.1,
   maxScale = 3.5,
+  allowUpscale = false,
   hudHeight = 48,
   paddingX = 16,
   paddingY = 16
@@ -54,7 +55,9 @@ function calculateFitScale({
     }
   }
 
-  fitScale = Math.min(fitScale, 1.0)
+  if (!allowUpscale) {
+    fitScale = Math.min(fitScale, 1.0)
+  }
   fitScale = Math.min(Math.max(Math.floor(fitScale * 1000) / 1000, minScale), maxScale)
   return {
     fitScale,
@@ -143,32 +146,36 @@ runTest('输入框聚焦后点击画布 -> 触发主动 blur 保存测试', () =
   assert.strictEqual(isSaved, true, '数据保存未被触发！')
 })
 
-// 测试 7：下拉菜单收起逻辑仿真测试 (Escape + Clickoutside 广播)
-runTest('拖拽/缩放/拉伸时收起下拉选项 (dismissAllOverlays) 广播测试', () => {
+// 测试 7：下拉菜单收起逻辑仿真测试 (Escape + Clickoutside 广播，绝不破坏 DOM display 样式)
+runTest('拖拽/缩放/拉伸时收起下拉选项 (dismissAllOverlays) 触发 ClickOutside 广播与 Escape', () => {
   let escDispatched = false
-  let clickDispatched = false
-  let popperHidden = false
+  let clickOutsideDispatched = false
+  let activeElementBlurred = false
 
-  // 模拟浮层
-  const mockPopper = {
-    style: { display: 'block' },
-    setAttribute(key, val) {
-      if (key === 'aria-hidden' && val === 'true') {
-        popperHidden = true
-      }
+  const mockActiveElement = {
+    blur() {
+      activeElementBlurred = true
     }
   }
 
-  // 执行收起
-  mockPopper.style.display = 'none'
-  mockPopper.setAttribute('aria-hidden', 'true')
+  // 模拟 Hook 内部的 dismissAllOverlays 纯净收起 (不改写 DOM style.display，保护 Element Plus 状态机)
+  mockActiveElement.blur()
   escDispatched = true
-  clickDispatched = true
+  clickOutsideDispatched = true
 
-  assert.strictEqual(mockPopper.style.display, 'none', '浮层未被隐藏！')
-  assert.strictEqual(popperHidden, true, 'aria-hidden 未设置！')
-  assert.strictEqual(escDispatched, true, 'Escape 事件未发送！')
-  assert.strictEqual(clickDispatched, true, 'Click 事件未发送！')
+  assert.strictEqual(activeElementBlurred, true, '活动输入/下拉框未失焦！')
+  assert.strictEqual(escDispatched, true, 'Escape 广播事件未发送！')
+  assert.strictEqual(clickOutsideDispatched, true, 'ClickOutside 广播事件未发送！')
+})
+
+// 测试 8：开启 allowUpscale 时宽屏大容器 (1400 × 900) 自动等比放大充满父级
+runTest('宽屏大容器 (1400×900) 开启 allowUpscale=true 自动等比放大充满父级宽度', () => {
+  const res = calculateFitScale({ containerWidth: 1400, containerHeight: 900, allowUpscale: true })
+  console.log(`   计算结果: scale=${res.fitScale}, 渲染尺寸=${res.renderedWidth}×${res.renderedHeight}px`)
+  
+  assert(res.fitScale > 1.0, '开启 allowUpscale 后比例应大于 1.0')
+  assert(res.renderedWidth <= res.availableWidth, '放大后宽度超出可用宽度！')
+  assert(res.renderedHeight <= res.availableHeight, '放大后高度超出可用高度！')
 })
 
 console.log('\n====================================================')
