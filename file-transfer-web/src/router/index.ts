@@ -36,6 +36,16 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/maintenance',
+    name: 'Maintenance',
+    component: () => import('@/views/MaintenanceView/index.vue'),
+    meta: {
+      title: 'Proxima 维护校准',
+      icon: 'SetUp',
+      desc: 'Proxima Factory Test - Full (Online) 维护校准系统'
+    }
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/transfer'
   }

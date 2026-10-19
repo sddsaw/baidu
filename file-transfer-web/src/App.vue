@@ -24,6 +24,9 @@
           <el-radio-button value="/instrument">
             <el-icon style="margin-right: 4px"><Odometer /></el-icon> ATE 芯片测试机台
           </el-radio-button>
+          <el-radio-button value="/maintenance">
+            <el-icon style="margin-right: 4px"><SetUp /></el-icon> Proxima 维护校准
+          </el-radio-button>
         </el-radio-group>
       </div>
 
@@ -47,7 +50,13 @@
     </header>
 
     <!-- 主体路由承载区域 -->
-    <main class="app-main" :class="{ 'fluid-main': route.path === '/surface' || route.path === '/instrument' }">
+    <main
+      class="app-main"
+      :class="{
+        'fluid-main': route.path === '/surface' || route.path === '/instrument' || route.path === '/maintenance',
+        'maintenance-main': route.path === '/maintenance'
+      }"
+    >
       <router-view v-slot="{ Component }">
         <transition name="fade-slide" mode="out-in">
           <keep-alive>
@@ -66,6 +75,7 @@ import {
   Files,
   TrendCharts,
   Odometer,
+  SetUp,
   Refresh,
   FullScreen
 } from '@element-plus/icons-vue'
@@ -78,6 +88,7 @@ const router = useRouter()
 const activeNav = computed(() => {
   if (route.path === '/surface') return '/surface'
   if (route.path === '/instrument') return '/instrument'
+  if (route.path === '/maintenance') return '/maintenance'
   return '/transfer'
 })
 
@@ -196,6 +207,16 @@ const toggleFullscreen = () => {
 
 .fluid-main {
   max-width: 1560px;
+}
+
+.maintenance-main {
+  max-width: 100%;
+  padding: 10px 16px;
+  height: calc(100vh - 64px);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* 路由转场过渡动效 */
