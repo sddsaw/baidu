@@ -27,6 +27,9 @@
           <el-radio-button value="/maintenance">
             <el-icon style="margin-right: 4px"><SetUp /></el-icon> Proxima 维护校准
           </el-radio-button>
+          <el-radio-button value="/waveform">
+            <el-icon style="margin-right: 4px"><Monitor /></el-icon> 数字波形仿真
+          </el-radio-button>
         </el-radio-group>
       </div>
 
@@ -53,8 +56,9 @@
     <main
       class="app-main"
       :class="{
-        'fluid-main': route.path === '/surface' || route.path === '/instrument' || route.path === '/maintenance',
-        'maintenance-main': route.path === '/maintenance'
+        'fluid-main': route.path === '/surface' || route.path === '/instrument' || route.path === '/maintenance' || route.path === '/waveform',
+        'maintenance-main': route.path === '/maintenance',
+        'waveform-main': route.path === '/waveform'
       }"
     >
       <router-view v-slot="{ Component }">
@@ -77,7 +81,8 @@ import {
   Odometer,
   SetUp,
   Refresh,
-  FullScreen
+  FullScreen,
+  Monitor
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
@@ -89,6 +94,7 @@ const activeNav = computed(() => {
   if (route.path === '/surface') return '/surface'
   if (route.path === '/instrument') return '/instrument'
   if (route.path === '/maintenance') return '/maintenance'
+  if (route.path === '/waveform') return '/waveform'
   return '/transfer'
 })
 
@@ -123,10 +129,12 @@ const toggleFullscreen = () => {
 
 <style scoped>
 .app-layout {
-  min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
   display: flex;
   flex-direction: column;
   background-color: #f1f5f9;
+  overflow: hidden;
 }
 
 .app-header {
@@ -141,6 +149,7 @@ const toggleFullscreen = () => {
   top: 0;
   z-index: 100;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
 }
 
 .header-left {
@@ -213,6 +222,17 @@ const toggleFullscreen = () => {
   max-width: 100%;
   padding: 10px 16px;
   height: calc(100vh - 64px);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.waveform-main {
+  max-width: 100%;
+  padding: 0;
+  height: calc(100vh - 64px);
+  flex: 1;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;

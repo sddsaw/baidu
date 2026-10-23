@@ -46,6 +46,16 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/waveform',
+    name: 'Waveform',
+    component: () => import('@/views/WaveformView/index.vue'),
+    meta: {
+      title: '数字波形仿真',
+      icon: 'Monitor',
+      desc: 'VCD 数字波形仿真分析引擎 (支持 50M~100M 大文件)'
+    }
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/transfer'
   }

@@ -12,7 +12,11 @@
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
     "@panzoom/panzoom": "^4.6.2",
+    "@types/lz4js": "^0.2.2",
+    "@vscode/wasm-component-model": "^1.0.2",
+    "culori": "^4.0.2",
     "element-plus": "^2.8.5",
+    "lz4js": "^0.2.0",
     "three": "^0.186.1",
     "vue": "^3.5.12",
     "vue-router": "^4.6.4"
