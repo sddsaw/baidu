@@ -1,4 +1,4 @@
-import LZ4 from 'lz4js'
+import { decompressLz4 } from './lz4Decompress'
 import type { VcdMetadata, VcdScopeNode, VcdSignal, VcdSignalData, VcdTransition } from '../types'
 import bundledWasmUrl from './filehandler.wasm?url'
 
@@ -79,6 +79,7 @@ async function parseWithWasm(
   const topScopes: { name: string; id: number; type: string }[] = []
   const transitionsMap: Record<number, VcdTransition[]> = {}
   const signalChunkBuffers: Record<number, string[]> = {}
+  const compressedChunkBuffers: Record<number, { chunks: Uint8Array[]; loaded: number }> = {}
 
   const imports = {
     '$root': {
@@ -153,23 +154,64 @@ async function parseWithWasm(
           console.error('Failed to parse transition chunk for signal', signalid, err)
         }
       },
-      sendcompressedtransitiondata: (signalid: number, signalwidth: number, _totalchunks: number, _chunknum: number, _min: number, _max: number, compresseddata_ptr: number, compresseddata_len: number, _originalsize: number) => {
+      sendcompressedtransitiondata: (signalid: number, signalwidth: number, totalchunks: number, chunknum: number, _min: number, _max: number, compresseddata_ptr: number, compresseddata_len: number, originalsize: number) => {
         try {
-          const compressed = new Uint8Array(wasmMemory.buffer, compresseddata_ptr, compresseddata_len)
-          const decompressed = LZ4.decompress(compressed)
+          const chunkSlice = new Uint8Array(wasmMemory.buffer, compresseddata_ptr, compresseddata_len)
+          let fullCompressed: Uint8Array | null = null
+
+          if (totalchunks <= 1) {
+            fullCompressed = chunkSlice
+          } else {
+            if (!compressedChunkBuffers[signalid]) {
+              compressedChunkBuffers[signalid] = {
+                chunks: new Array(totalchunks),
+                loaded: 0
+              }
+            }
+            const entry = compressedChunkBuffers[signalid]
+            if (!entry.chunks[chunknum]) {
+              entry.chunks[chunknum] = new Uint8Array(chunkSlice)
+              entry.loaded++
+            }
+            if (entry.loaded === totalchunks) {
+              const totalLen = entry.chunks.reduce((acc, c) => acc + c.byteLength, 0)
+              fullCompressed = new Uint8Array(totalLen)
+              let offset = 0
+              for (const c of entry.chunks) {
+                fullCompressed.set(c, offset)
+                offset += c.byteLength
+              }
+              delete compressedChunkBuffers[signalid]
+            }
+          }
+
+          if (!fullCompressed) return
+
+          const decompressed = decompressLz4(fullCompressed, originalsize)
           const dataView = new DataView(decompressed.buffer, decompressed.byteOffset, decompressed.byteLength)
           const byteIncrement = 8 + signalwidth
+          const totalItems = Math.floor(decompressed.length / byteIncrement)
+          const list = new Array<VcdTransition>(totalItems)
           let time = 0
-          if (!transitionsMap[signalid]) transitionsMap[signalid] = []
-          for (let i = 0; i < decompressed.length; i += byteIncrement) {
-            const deltaTime = Number(dataView.getBigUint64(i, true))
-            time += deltaTime
-            let val = ''
-            for (let c = 0; c < signalwidth; c++) {
-              val += String.fromCharCode(decompressed[i + 8 + c])
+
+          if (signalwidth === 1) {
+            for (let idx = 0, i = 0; idx < totalItems; idx++, i += byteIncrement) {
+              time += Number(dataView.getBigUint64(i, true))
+              const code = decompressed[i + 8]
+              const val = code === 49 ? '1' : code === 48 ? '0' : String.fromCharCode(code)
+              list[idx] = { time, value: val }
             }
-            transitionsMap[signalid].push({ time, value: val })
+          } else {
+            for (let idx = 0, i = 0; idx < totalItems; idx++, i += byteIncrement) {
+              time += Number(dataView.getBigUint64(i, true))
+              const val = String.fromCharCode.apply(
+                null,
+                decompressed.subarray(i + 8, i + 8 + signalwidth) as unknown as number[]
+              )
+              list[idx] = { time, value: val }
+            }
           }
+          transitionsMap[signalid] = list
         } catch (err) {
           console.error('Failed to decompress transition data for signal', signalid, err)
         }
@@ -183,8 +225,9 @@ async function parseWithWasm(
 
   if (onProgress) onProgress(45, 'WASM 引擎就绪，正在进行流式解析头部与层级...')
 
-  // 加载并解析 VCD 头部与变量
-  ;(instance.exports.loadfile as Function)(BigInt(vcdBytes.byteLength), 0, 1, 64 * 1024)
+  // 加载并解析 VCD 头部与变量：对大于 8MB 的文件启用流式 BufReader (loadStatic=0)，避免 WASM 线性内存重复分配整块 100MB 缓冲区
+  const loadStatic = vcdBytes.byteLength <= 8 * 1024 * 1024 ? 1 : 0
+  ;(instance.exports.loadfile as Function)(BigInt(vcdBytes.byteLength), 0, loadStatic, 60 * 1024)
   if (onProgress) onProgress(60, '正在提取信号层次树与索引表...')
   ;(instance.exports.readbody as Function)()
 
@@ -270,9 +313,9 @@ async function parseWithWasm(
 
   if (onProgress) onProgress(75, `已解析 ${signalsList.length} 个信号，正在拉取波形跳变数据...`)
 
-  // 批量拉取波形跳变数据 (使用 Set 避免对同网 alias 信号重复发起 wasm 查询)
+  // 批量拉取波形跳变数据 (使用 Set 避免对同网 alias 信号重复发起 wasm 查询，以 8 个信号为一批流式解压降低峰值内存)
   const allSignalIds = Array.from(new Set(signalsList.map(s => Number(s.netId)).filter(id => !isNaN(id))))
-  const BATCH_SIZE = 100
+  const BATCH_SIZE = 8
   for (let i = 0; i < allSignalIds.length; i += BATCH_SIZE) {
     const batch = allSignalIds.slice(i, i + BATCH_SIZE)
     const sigPtr = (instance.exports.cabi_realloc as Function)(0, 0, 4, batch.length * 4)
@@ -597,14 +640,6 @@ b00000000000000000000000000000000 K
 0O
 $end
 `
-  for (let t = 10; t <= 2000; t += 10) {
-    const clk100 = (t / 10) % 2 === 1 ? '1' : '0'
-    const clk50 = Math.floor(t / 20) % 2 === 1 ? '1' : '0'
-    const baud = Math.floor(t / 80) % 2 === 1 ? '1' : '0'
-    vcd += `#${t}\n${clk100}a\n${clk50}b\n${clk100}e\n${baud}N\n`
-  }
-  vcd += `#50\n1c\n1d\n1f\n`
-
   const instructions = [
     { pc: '00000000000000000000000000000100', next: '00000000000000000000000000001000', inst: '00000000000100000000000010010011', op: '0001', res: '00000000000000000000000000000001', imm: '00000000000000000000000000000001' },
     { pc: '00000000000000000000000000001000', next: '00000000000000000000000000001100', inst: '00000000001000000000000100010011', op: '0001', res: '00000000000000000000000000000010', imm: '00000000000000000000000000000010' },
@@ -615,33 +650,78 @@ $end
     { pc: '00000000000000000000000000011100', next: '00000000000000000000000000100000', inst: '00000000000000000000000001101111', op: '0000', res: '00000000000000000000000000000000', imm: '00000000000000000000000000000100' }
   ]
 
-  for (let i = 0; i < instructions.length; i++) {
-    const t = 70 + i * 40
-    const item = instructions[i]
-    vcd += `#${t}\n`
-    vcd += `b${item.pc} g\n`
-    vcd += `b${item.pc} j\n`
-    vcd += `b${item.next} k\n`
-    vcd += `b${item.inst} h\n`
-    vcd += `b${item.op} r\n`
-    vcd += `b${item.res} u\n`
-    vcd += `b${item.imm} q\n`
-    vcd += `1l\n`
-    vcd += `1w\n`
-    if (i === 3) {
-      vcd += `b00000000000000000000000000000010 I\nb00000000000000000000000000000011 J\n1G\n1H\n1C\n1E\n`
-    } else if (i === 4) {
-      vcd += `0H\nb00000000000000000000000000000011 K\n`
-    } else {
-      vcd += `0G\n0C\n0E\n`
+  // VCD 标准要求时间戳严格递增，按时间顺序归并所有仿真事件
+  const eventMap = new Map<number, string[]>()
+  const addEv = (t: number, line: string) => {
+    let list = eventMap.get(t)
+    if (!list) {
+      list = []
+      eventMap.set(t, list)
     }
-    if (item.op === '0010') {
-      vcd += `1v\n`
-    } else {
-      vcd += `0v\n`
-    }
+    list.push(line)
   }
-  vcd += `#400\n0w\n#600\n0L\n1O\n#800\n1L\n0O\n`
+
+  for (let t = 10; t <= 2000; t += 10) {
+    const clk100 = (t / 10) % 2 === 1 ? '1' : '0'
+    const clk50 = Math.floor(t / 20) % 2 === 1 ? '1' : '0'
+    const baud = Math.floor(t / 80) % 2 === 1 ? '1' : '0'
+    addEv(t, `${clk100}a`)
+    addEv(t, `${clk50}b`)
+    addEv(t, `${clk100}e`)
+    addEv(t, `${baud}N`)
+  }
+
+  addEv(50, '1c')
+  addEv(50, '1d')
+  addEv(50, '1f')
+
+  for (let cycle = 0; cycle < 45; cycle++) {
+    const t = 70 + cycle * 40
+    if (t > 2000) break
+    const i = cycle % instructions.length
+    const item = instructions[i]
+    const pcVal = ((cycle + 1) * 4).toString(2).padStart(32, '0')
+    const nextVal = ((cycle + 2) * 4).toString(2).padStart(32, '0')
+    addEv(t, `b${pcVal} g`)
+    addEv(t, `b${pcVal} j`)
+    addEv(t, `b${nextVal} k`)
+    addEv(t, `b${item.inst} h`)
+    addEv(t, `b${item.op} r`)
+    addEv(t, `b${item.res} u`)
+    addEv(t, `b${item.imm} q`)
+    addEv(t, '1l')
+    addEv(t, cycle % 3 === 0 ? '0w' : '1w')
+    if (i === 3) {
+      addEv(t, 'b00000000000000000000000000000010 I')
+      addEv(t, 'b00000000000000000000000000000011 J')
+      addEv(t, '1G')
+      addEv(t, '1H')
+      addEv(t, '1C')
+      addEv(t, '1E')
+    } else if (i === 4) {
+      addEv(t, '0H')
+      addEv(t, 'b00000000000000000000000000000011 K')
+    } else {
+      addEv(t, '0G')
+      addEv(t, '0C')
+      addEv(t, '0E')
+    }
+    addEv(t, item.op === '0010' ? '1v' : '0v')
+  }
+
+  addEv(600, '0L')
+  addEv(600, '1O')
+  addEv(800, '1L')
+  addEv(800, '0O')
+  addEv(1400, '0L')
+  addEv(1400, '1O')
+  addEv(1600, '1L')
+  addEv(1600, '0O')
+
+  const sortedTimes = Array.from(eventMap.keys()).sort((a, b) => a - b)
+  for (const t of sortedTimes) {
+    vcd += `#${t}\n${eventMap.get(t)!.join('\n')}\n`
+  }
   return vcd
 }
 

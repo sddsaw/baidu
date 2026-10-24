@@ -4,27 +4,27 @@
     <div class="view-header-bar">
       <div class="header-left">
         <div class="title-wrap">
-          <el-icon :size="20" color="#409EFF" style="margin-right: 8px"><Monitor /></el-icon>
+          <el-icon :size="20" color="#409EFF" style="margin-right: 4px; flex-shrink: 0"><Monitor /></el-icon>
           <h2 class="view-title">数字仿真波形分析平台</h2>
-          <el-tag type="info" size="small" effect="plain" round>VCD 高性能解析引擎</el-tag>
+          <el-tag v-if="!metadata" type="info" size="small" effect="plain" round>VCD 高性能解析引擎</el-tag>
         </div>
 
         <div class="metadata-tags" v-if="metadata">
           <el-tag type="success" effect="dark" size="small" v-if="metadata.engine">
-            <el-icon style="margin-right: 4px"><Cpu /></el-icon>
+            <el-icon style="margin-right: 3px"><Cpu /></el-icon>
             {{ metadata.engine }}
           </el-tag>
           <el-tag type="info" size="small" v-if="metadata.parseDuration !== undefined">
             ⚡ 耗时: {{ metadata.parseDuration }}ms
           </el-tag>
-          <el-tag type="success" size="small">
+          <el-tag type="success" size="small" class="file-name-tag" :title="metadata.fileName">
             <el-icon><Document /></el-icon> {{ metadata.fileName }}
           </el-tag>
           <el-tag type="info" size="small" v-if="metadata.fileSize">
             {{ formatFileSize(metadata.fileSize) }}
           </el-tag>
           <el-tag type="warning" size="small">
-            周期: {{ metadata.minTime }} ~ {{ metadata.maxTime }} {{ metadata.timeUnit }}
+            周期: {{ metadata.minTime }} ~ {{ metadata.maxTime.toLocaleString() }} {{ metadata.timeUnit }}
           </el-tag>
           <el-tag type="primary" size="small">
             信号总数: {{ metadata.signalCount }}
@@ -208,6 +208,7 @@
             :selected-signal-id="selectedSignalId"
             @update:selected-signal-id="selectedSignalId = $event"
             @remove-signal="removeActiveSignal"
+            @reorder-signals="handleReorderSignals"
           />
         </template>
 
@@ -231,7 +232,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, shallowRef, markRaw, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import {
   Monitor,
   Document,
@@ -262,11 +263,11 @@ const treeContainerRef = ref<HTMLDivElement | null>(null)
 const treeHeight = ref(400)
 const isAllExpanded = ref(false)
 
-// 数据模型
-const metadata = ref<VcdMetadata | null>(null)
-const rootScopeNode = ref<VcdScopeNode | null>(null)
-const allSignalsList = ref<VcdSignal[]>([])
-const allSignalsData = ref<VcdSignalData[]>([])
+// 数据模型（采用 shallowRef + markRaw 避免 100MB 大文件数百万跳变对象被 Vue Proxy 深度劫持导致卡顿）
+const metadata = shallowRef<VcdMetadata | null>(null)
+const rootScopeNode = shallowRef<VcdScopeNode | null>(null)
+const allSignalsList = shallowRef<VcdSignal[]>([])
+const allSignalsData = shallowRef<VcdSignalData[]>([])
 const activeSignalIds = ref<Set<string>>(new Set())
 
 // Worker 实例
@@ -388,17 +389,34 @@ watch(searchQuery, (val) => {
   netlistTreeRef.value?.filter(val)
 })
 
-// 处于激活展示状态的波形数据
+// 处于激活展示状态的波形数据（保持添加与拖拽排序顺序）
+const activeSignalOrder = ref<string[]>([])
+
+const signalDataMap = computed(() => {
+  const map = new Map<string, VcdSignalData>()
+  for (const s of allSignalsData.value) {
+    map.set(s.id, s)
+  }
+  return map
+})
+
 const activeSignals = computed<VcdSignalData[]>(() => {
-  return allSignalsData.value.filter(s => activeSignalIds.value.has(s.id))
+  const result: VcdSignalData[] = []
+  for (const id of activeSignalOrder.value) {
+    const s = signalDataMap.value.get(id)
+    if (s) result.push(s)
+  }
+  return result
 })
 
 // 在 NETLIST 树中勾选/取消勾选单个信号
 const toggleSignalNode = (node: NetlistTreeNode) => {
   if (activeSignalIds.value.has(node.id)) {
     activeSignalIds.value.delete(node.id)
+    activeSignalOrder.value = activeSignalOrder.value.filter(id => id !== node.id)
   } else {
     activeSignalIds.value.add(node.id)
+    activeSignalOrder.value.push(node.id)
     selectedSignalId.value = node.id
   }
 }
@@ -406,6 +424,13 @@ const toggleSignalNode = (node: NetlistTreeNode) => {
 // 移除单个波形信号
 const removeActiveSignal = (id: string) => {
   activeSignalIds.value.delete(id)
+  activeSignalOrder.value = activeSignalOrder.value.filter(item => item !== id)
+}
+
+// 拖拽排序信号列表
+const handleReorderSignals = (newOrderIds: string[]) => {
+  activeSignalOrder.value = newOrderIds
+  activeSignalIds.value = new Set(newOrderIds)
 }
 
 // 触发文件选择
@@ -504,13 +529,16 @@ onMounted(() => {
       if (message) parseMessage.value = message
     } else if (type === 'PARSE_COMPLETE') {
       parsing.value = false
-      metadata.value = payload.metadata
-      rootScopeNode.value = payload.rootScope
-      allSignalsList.value = payload.signalsList
-      allSignalsData.value = payload.signalsData
+      const rawSignalsData = (payload.signalsData as VcdSignalData[]).map(sig => markRaw(sig))
+      metadata.value = markRaw(payload.metadata)
+      rootScopeNode.value = markRaw(payload.rootScope)
+      allSignalsList.value = markRaw(payload.signalsList)
+      allSignalsData.value = markRaw(rawSignalsData)
 
-      // 默认把前 8 个主要信号加入波形展示区
-      activeSignalIds.value = new Set(payload.signalsList.slice(0, 8).map((s: VcdSignal) => s.id))
+      // 默认把前 12 个主要信号加入波形展示区
+      const initialIds = payload.signalsList.slice(0, 12).map((s: VcdSignal) => s.id)
+      activeSignalOrder.value = initialIds
+      activeSignalIds.value = new Set(initialIds)
       selectedSignalId.value = payload.signalsList[0]?.id || null
 
       nextTick(() => {
@@ -552,26 +580,32 @@ onUnmounted(() => {
 }
 
 .view-header-bar {
-  height: 56px;
+  min-height: 52px;
   background-color: #1a1d24;
   border-bottom: 1px solid #282c34;
-  padding: 0 20px;
+  padding: 6px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   flex-shrink: 0;
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .title-wrap {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .view-title {
@@ -579,18 +613,34 @@ onUnmounted(() => {
   font-size: 16px;
   font-weight: 600;
   color: #f0f2f5;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .metadata-tags {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
+}
+
+.metadata-tags::-webkit-scrollbar {
+  display: none;
+}
+
+.metadata-tags :deep(.el-tag) {
+  flex-shrink: 0;
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .parsing-progress-banner {
