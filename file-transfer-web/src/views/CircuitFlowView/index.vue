@@ -16,7 +16,7 @@
       :auto-fit-on-init="true"
       :show-hud="true"
       :show-hud-status="true"
-      exclude-selector="input, select, textarea, button, a, [role='button'], .el-select, .el-input, .el-button, .el-checkbox, .interactive-point, .interactive-blade, .interactive-relay, .interactive-socket, .interactive-wire, .hit-area"
+      exclude-selector="input, select, textarea, button, a, [role='button'], .el-select, .el-input, .el-button, .interactive-point, .interactive-blade, .interactive-relay, .interactive-socket, .interactive-wire, .hit-area"
     >
       <div class="circuit-content-row">
         <!-- ================= 1. 左侧: 激励源参数配置卡片 ================= -->
@@ -37,10 +37,6 @@
                   <el-select v-model="forceSetup.forceI.range" size="small" class="w-full" :teleported="false" popper-class="circuit-dark-popper">
                     <el-option v-for="opt in CURRENT_RANGE_OPTIONS" :key="opt" :label="`${opt} A`" :value="opt" />
                   </el-select>
-                </div>
-
-                <div class="form-checkbox-item">
-                  <el-checkbox v-model="forceSetup.forceI.autoRange" size="small">Auto Range</el-checkbox>
                 </div>
 
                 <div class="form-item">
@@ -79,10 +75,6 @@
                   <el-select v-model="forceSetup.forceV.range" size="small" class="w-full" :teleported="false" popper-class="circuit-dark-popper">
                     <el-option v-for="opt in VOLTAGE_RANGE_OPTIONS" :key="opt" :label="`${opt} V`" :value="opt" />
                   </el-select>
-                </div>
-
-                <div class="form-checkbox-item">
-                  <el-checkbox v-model="forceSetup.forceV.autoRange" size="small">Auto Range</el-checkbox>
                 </div>
 
                 <div class="form-item">
@@ -503,14 +495,12 @@ const forceSetup = reactive({
   forceI: {
     current: '0',
     range: '20.000 µ',
-    autoRange: true,
     vHi: '6.500',
     vLo: '-1.600'
   },
   forceV: {
     voltage: '0.000',
     range: '20.000',
-    autoRange: true,
     iHi: '20.000 µ',
     iLo: '-20.000 µ'
   }
