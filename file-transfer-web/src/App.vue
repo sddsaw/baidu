@@ -15,6 +15,12 @@
       <!-- 中间视图路由切换导航 -->
       <div class="header-center">
         <el-radio-group :model-value="activeNav" @update:model-value="handleNavChange" size="default">
+          <el-radio-button value="/proxima">
+            <el-icon style="margin-right: 4px"><Platform /></el-icon> Proxima 平台
+          </el-radio-button>
+          <el-radio-button value="/cluster">
+            <el-icon style="margin-right: 4px"><Connection /></el-icon> 集群总控 (1:N)
+          </el-radio-button>
           <el-radio-button value="/transfer">
             <el-icon style="margin-right: 4px"><Files /></el-icon> 文件流转管理
           </el-radio-button>
@@ -56,9 +62,11 @@
     <main
       class="app-main"
       :class="{
-        'fluid-main': route.path === '/surface' || route.path === '/instrument' || route.path === '/maintenance' || route.path === '/waveform',
+        'fluid-main': route.path === '/surface' || route.path === '/instrument' || route.path === '/maintenance' || route.path === '/waveform' || route.path === '/proxima' || route.path === '/cluster',
         'maintenance-main': route.path === '/maintenance',
-        'waveform-main': route.path === '/waveform'
+        'waveform-main': route.path === '/waveform',
+        'proxima-main': route.path === '/proxima',
+        'cluster-main': route.path === '/cluster'
       }"
     >
       <router-view v-slot="{ Component }">
@@ -76,6 +84,8 @@
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
+  Platform,
+  Connection,
   Files,
   TrendCharts,
   Odometer,
@@ -91,6 +101,8 @@ const router = useRouter()
 
 // 当前激活的路由导航路径
 const activeNav = computed(() => {
+  if (route.path === '/proxima') return '/proxima'
+  if (route.path === '/cluster') return '/cluster'
   if (route.path === '/surface') return '/surface'
   if (route.path === '/instrument') return '/instrument'
   if (route.path === '/maintenance') return '/maintenance'
@@ -229,6 +241,28 @@ const toggleFullscreen = () => {
 }
 
 .waveform-main {
+  max-width: 100%;
+  padding: 0;
+  height: calc(100vh - 64px);
+  flex: 1;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.proxima-main {
+  max-width: 100%;
+  padding: 0;
+  height: calc(100vh - 64px);
+  flex: 1;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.cluster-main {
   max-width: 100%;
   padding: 0;
   height: calc(100vh - 64px);

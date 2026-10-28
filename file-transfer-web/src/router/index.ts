@@ -3,7 +3,27 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    redirect: '/transfer'
+    redirect: '/proxima'
+  },
+  {
+    path: '/proxima',
+    name: 'Proxima',
+    component: () => import('@/views/ProximaHomeView/index.vue'),
+    meta: {
+      title: 'Proxima 半导体测试平台',
+      icon: 'Platform',
+      desc: 'Proxima Semiconductor Test Platform'
+    }
+  },
+  {
+    path: '/cluster',
+    name: 'ClusterControl',
+    component: () => import('@/views/ClusterControlView/index.vue'),
+    meta: {
+      title: 'ATE 集群总控终端 (1:N)',
+      icon: 'Connection',
+      desc: '芯片半导体 ATE 中央智能控制终端系统 (1对多远程管控)'
+    }
   },
   {
     path: '/transfer',

@@ -1,3 +1,4 @@
 # Temporary download and extracted artifacts
 vaporview*
 *.tsbuildinfo
+*.exe
