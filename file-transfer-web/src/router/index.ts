@@ -76,6 +76,16 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/circuit-flow',
+    name: 'CircuitFlow',
+    component: () => import('@/views/CircuitFlowView/index.vue'),
+    meta: {
+      title: 'VI 电路拓扑',
+      icon: 'Share',
+      desc: 'VSCode 风格可编辑半导体 VI 仪器拓扑'
+    }
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/transfer'
   }

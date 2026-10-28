@@ -36,6 +36,9 @@
           <el-radio-button value="/waveform">
             <el-icon style="margin-right: 4px"><Monitor /></el-icon> 数字波形仿真
           </el-radio-button>
+          <el-radio-button value="/circuit-flow">
+            <el-icon style="margin-right: 4px"><Share /></el-icon> VI 电路拓扑
+          </el-radio-button>
         </el-radio-group>
       </div>
 
@@ -62,7 +65,7 @@
     <main
       class="app-main"
       :class="{
-        'fluid-main': route.path === '/surface' || route.path === '/instrument' || route.path === '/maintenance' || route.path === '/waveform' || route.path === '/proxima' || route.path === '/cluster',
+        'fluid-main': route.path === '/surface' || route.path === '/instrument' || route.path === '/maintenance' || route.path === '/waveform' || route.path === '/proxima' || route.path === '/cluster' || route.path === '/circuit-flow',
         'maintenance-main': route.path === '/maintenance',
         'waveform-main': route.path === '/waveform',
         'proxima-main': route.path === '/proxima',
@@ -92,7 +95,8 @@ import {
   SetUp,
   Refresh,
   FullScreen,
-  Monitor
+  Monitor,
+  Share
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
@@ -107,6 +111,7 @@ const activeNav = computed(() => {
   if (route.path === '/instrument') return '/instrument'
   if (route.path === '/maintenance') return '/maintenance'
   if (route.path === '/waveform') return '/waveform'
+  if (route.path === '/circuit-flow') return '/circuit-flow'
   return '/transfer'
 })
 
