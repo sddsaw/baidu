@@ -17,6 +17,12 @@
           inline-prompt
           style="--el-switch-on-color: #0284c7; --el-switch-off-color: #475569;"
         />
+
+        <!-- 架构模式切换：Vue Flow 现代拓扑 vs 传统硬编码画布 -->
+        <el-radio-group v-model="renderMode" size="small" class="render-mode-toggle">
+          <el-radio-button value="flow">⚡ Vue Flow 现代拓扑 (优化后)</el-radio-button>
+          <el-radio-button value="classic">📐 传统硬编码 SVG (原版)</el-radio-button>
+        </el-radio-group>
       </div>
 
       <!-- 快捷场景预设按钮 -->
@@ -52,7 +58,7 @@
         </div>
         <div class="metric-item">
           <span class="metric-label">生效缩放:</span>
-          <span class="metric-value text-emerald font-mono">{{ instrumentRef?.scalePercent || '100%' }}</span>
+          <span class="metric-value text-emerald font-mono">{{ effectiveScale }}</span>
         </div>
         <div class="metric-badge">
           <el-tag :type="testStatusTag" size="small" effect="plain">
@@ -117,7 +123,8 @@
 
         <!-- 真实嵌入的 ATE 芯片测试机台组件 -->
         <div class="mock-content-body">
-          <DcViInstrument ref="instrumentRef" />
+          <DcViInstrumentFlow v-if="renderMode === 'flow'" ref="flowInstrumentRef" />
+          <DcViInstrument v-else ref="instrumentRef" />
         </div>
 
         <!-- 拖动手柄：支持鼠标在右下角或右边缘直接拉伸 (仿真用户直接拖拽客户端) -->
@@ -170,10 +177,21 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Monitor, FullScreen } from '@element-plus/icons-vue'
 import DcViInstrument from '@/components/DcViInstrument.vue'
+import DcViInstrumentFlow from '@/components/DcViFlow/DcViInstrumentFlow.vue'
 
-// 机台组件实例引用（用于读取 scalePercent、isAutoFit 等）
+// 渲染架构：默认切换至现代 Vue Flow 响应式拓扑架构
+const renderMode = ref<'flow' | 'classic'>('flow')
+const flowInstrumentRef = ref<InstanceType<typeof DcViInstrumentFlow> | null>(null)
 const instrumentRef = ref<InstanceType<typeof DcViInstrument> | null>(null)
 const sandboxContainerRef = ref<HTMLElement | null>(null)
+
+// 动态缩放比例
+const effectiveScale = computed(() => {
+  if (renderMode.value === 'flow') {
+    return flowInstrumentRef.value?.scalePercent || '100%'
+  }
+  return instrumentRef.value?.scalePercent || '100%'
+})
 
 // 是否开启客户端场景模拟器（默认开启，方便一进页面即刻测试验证）
 const isSimulating = ref(true)

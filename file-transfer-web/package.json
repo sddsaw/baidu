@@ -14,6 +14,7 @@
     "@panzoom/panzoom": "^4.6.2",
     "@types/lz4js": "^0.2.2",
     "@vscode/wasm-component-model": "^1.0.2",
+    "@vue-flow/core": "^1.48.2",
     "culori": "^4.0.2",
     "element-plus": "^2.8.5",
     "lz4js": "^0.2.0",
