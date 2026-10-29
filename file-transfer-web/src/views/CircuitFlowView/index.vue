@@ -16,7 +16,7 @@
       :auto-fit-on-init="true"
       :show-hud="true"
       :show-hud-status="true"
-      exclude-selector="input, select, textarea, button, a, [role='button'], .el-select, .el-input, .el-button, .interactive-point, .interactive-blade, .interactive-relay, .interactive-socket, .interactive-wire, .hit-area"
+      exclude-selector="input, select, textarea, button, a, [role='button'], .el-select, .el-input, .el-button, .el-checkbox, .el-select-dropdown, .el-popper, .el-scrollbar, .force-panel-card, .interactive-point, .interactive-blade, .interactive-relay, .interactive-socket, .interactive-wire, .hit-area"
     >
       <div class="circuit-content-row">
         <!-- ================= 1. 左侧: 激励源参数配置卡片 ================= -->

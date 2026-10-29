@@ -44,7 +44,9 @@
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
   font-family: inherit;
   flex-shrink: 0;
-  overflow: hidden;
+  overflow: visible !important;
+  position: relative;
+  z-index: 50;
   cursor: default;
 }
 
@@ -53,6 +55,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  overflow: visible !important;
 }
 .form-item {
   display: flex;
@@ -540,6 +543,10 @@
   height: 2px !important;
 }
 
+.vscode-flow-page .vscode-tabs .el-tabs__content {
+  overflow: visible !important;
+}
+
 /* ==================== 7. Element Plus 下拉弹窗暗色深度覆写 (支持 :teleported="false") ==================== */
 .vscode-flow-page .el-popper,
 .circuit-dark-popper.el-popper {
@@ -547,13 +554,42 @@
   border: 1px solid #3c3c3c !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6) !important;
   color: #cccccc !important;
-  z-index: 2500 !important;
+  z-index: 3000 !important;
 }
 
 .vscode-flow-page .el-select__popper,
 .circuit-dark-popper .el-select__popper {
   background: #252526 !important;
   border: 1px solid #3c3c3c !important;
+}
+
+.vscode-flow-page .el-select-dropdown,
+.circuit-dark-popper.el-select-dropdown {
+  background-color: #252526 !important;
+}
+
+/* 核心滚动优化：限制最大高度并强制启用平滑垂直滚动与滚动隔离 */
+.vscode-flow-page .el-select-dropdown .el-scrollbar__wrap,
+.circuit-dark-popper .el-scrollbar__wrap {
+  max-height: 180px !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+}
+
+/* 优雅暗色滚动条 */
+.vscode-flow-page .el-select-dropdown .el-scrollbar__bar.is-vertical,
+.circuit-dark-popper .el-scrollbar__bar.is-vertical {
+  width: 6px !important;
+  right: 2px !important;
+}
+.vscode-flow-page .el-select-dropdown .el-scrollbar__thumb,
+.circuit-dark-popper .el-scrollbar__thumb {
+  background-color: rgba(255, 255, 255, 0.25) !important;
+  border-radius: 3px !important;
+}
+.vscode-flow-page .el-select-dropdown .el-scrollbar__thumb:hover,
+.circuit-dark-popper .el-scrollbar__thumb:hover {
+  background-color: rgba(255, 255, 255, 0.45) !important;
 }
 
 .vscode-flow-page .el-select-dropdown__list,

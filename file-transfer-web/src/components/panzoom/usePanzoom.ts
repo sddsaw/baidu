@@ -80,7 +80,7 @@ export function usePanzoom(
     doubleClickReset = true,
     autoFitOnResize = true,
     autoFitOnInit = true,
-    excludeSelector = 'input, select, textarea, button, a, [role="button"], .el-select, .el-input, .el-button',
+    excludeSelector = 'input, select, textarea, button, a, [role="button"], .el-select, .el-input, .el-button, .el-checkbox, .el-select-dropdown, .el-popper, .el-scrollbar',
     hudSelector = '.zoom-hud-panel',
     onDismissOverlays,
     onScaleChange,
