@@ -52,7 +52,6 @@
         stripe
         border
         style="width: 100%"
-        :header-cell-style="{ background: '#f8fafc', color: '#475569' }"
       >
         <el-table-column type="index" label="#" width="60" align="center" />
         <el-table-column prop="fileName" label="文件名称" min-width="180">
@@ -413,34 +412,35 @@ const handleDelete = (id: number) => {
 }
 
 .stats-row {
-  margin-bottom: 20px;
+  margin-bottom: 8px;
 }
 
 .stat-card {
-  border-radius: 8px;
+  border-radius: var(--el-border-radius-base);
 }
 
 .stat-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 14px;
-  color: #64748b;
+  font-size: 11px;
+  color: var(--el-text-color-regular);
 }
 
 .stat-value {
-  font-size: 26px;
+  font-size: 18px;
   font-weight: 700;
-  margin: 6px 0;
+  margin: 3px 0;
+  font-family: var(--el-font-family);
 }
 
 .stat-desc {
-  font-size: 12px;
-  color: #94a3b8;
+  font-size: 10px;
+  color: var(--el-text-color-secondary);
 }
 
 .table-card {
-  border-radius: 8px;
+  border-radius: var(--el-border-radius-base);
 }
 
 .table-header {
@@ -448,38 +448,38 @@ const handleDelete = (id: number) => {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 8px;
 }
 
 .table-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 16px;
+  gap: 6px;
+  font-size: 11px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--el-text-color-primary);
 }
 
 .table-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .file-name-cell {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .file-text {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 13px;
-  color: #1e293b;
+  font-size: 11px;
+  color: var(--el-text-color-primary);
 }
 
 .pagination-wrapper {
-  margin-top: 16px;
+  margin-top: 8px;
   display: flex;
   justify-content: flex-end;
 }

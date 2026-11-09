@@ -1,0 +1,310 @@
+/**
+ * Unity Pro Dark Theme for Element Plus
+ * 专为工业级/游戏引擎 UI 设计的暗黑主题体系
+ * 核心指标：极高空间利用率、严格灰度层级、单行低高度、高对比度微边框
+ */
+
+/* ========================================================
+   1. 全局与暗黑模式基础变量覆盖 (基于 Element Plus 官方变量系统)
+   ======================================================== */
+:root,
+html.dark {
+  /* --- 字体与紧凑排版 --- */
+  --el-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --el-font-size-base: 11px;
+  --el-font-size-small: 11px;
+  --el-font-size-extra-small: 10px;
+  --el-font-size-medium: 12px;
+  --el-font-size-large: 13px;
+  --el-font-size-extra-large: 14px;
+  --el-font-line-height-primary: 1.35;
+
+  /* --- 组件紧凑单行高度 (Engine Compact Sizing) --- */
+  --el-component-size-small: 20px;
+  --el-component-size: 22px;
+  --el-component-size-large: 26px;
+
+  /* --- 工业级微圆角 (摒弃现代 Web 气泡大圆角) --- */
+  --el-border-radius-base: 2px;
+  --el-border-radius-small: 1px;
+  --el-border-radius-round: 2px;
+
+  /* --- Unity 经典标识配色 --- */
+  /* 主题蓝 (Unity Active Selection Blue) */
+  --el-color-primary: #2c5d87;
+  --el-color-primary-light-3: #3a72b0;
+  --el-color-primary-light-5: #4a88c7;
+  --el-color-primary-light-7: #78a8db;
+  --el-color-primary-light-8: #a1c4ea;
+  --el-color-primary-light-9: #cbe0f5;
+  --el-color-primary-dark-2: #1e4263;
+
+  /* 辅助状态色 (低饱和、工控化) */
+  --el-color-success: #388e3c;
+  --el-color-success-light-3: #4caf50;
+  --el-color-success-dark-2: #2e7d32;
+
+  --el-color-warning: #e58e00;  /* Unity 警示橙 */
+  --el-color-warning-light-3: #f59e0b;
+  --el-color-warning-dark-2: #b45309;
+
+  --el-color-danger: #d32f2f;
+  --el-color-danger-light-3: #ef5350;
+  --el-color-danger-dark-2: #c62828;
+
+  --el-color-info: #616161;
+  --el-color-info-light-3: #757575;
+  --el-color-info-dark-2: #424242;
+
+  /* --- 严格五层灰度系统 (Strict Grayscale Hierarchy) --- */
+  /* Level 0: 视口与底座 */
+  --el-bg-color-page: #1a1a1a;
+  /* Level 1: 检查器、树面板、主卡片容器背景 */
+  --el-bg-color: #242424;
+  /* Level 2: 弹出层、Popper、Tooltip、下拉菜单、对话框 */
+  --el-bg-color-overlay: #2a2a2a;
+
+  /* 控件表面填充 (Fills) */
+  --el-fill-color-darker: #161616;
+  --el-fill-color-dark: #1c1c1c;
+  --el-fill-color-blank: #202020;        /* 输入框、选择框默认背景 */
+  --el-fill-color: #333333;              /* 常规按钮、控件底色 */
+  --el-fill-color-light: #383838;        /* 标题栏、折叠卡片头部 */
+  --el-fill-color-lighter: #424242;      /* 悬浮高亮态 */
+  --el-fill-color-extra-light: #4c4c4c;
+
+  /* --- 文本色阶 (Text Hierarchy) --- */
+  --el-text-color-primary: #d6d6d6;      /* 正文主文本、数值 */
+  --el-text-color-regular: #b2b2b2;      /* 属性 Label、常规文字 */
+  --el-text-color-secondary: #7e7e7e;    /* 次要提示、单位 */
+  --el-text-color-placeholder: #525252;  /* 输入占位符 */
+  --el-text-color-disabled: #444444;     /* 禁用状态 */
+
+  /* --- 高对比度微边框 (High-Contrast Micro-Borders) --- */
+  --el-border-color-darker: #0c0c0c;
+  --el-border-color-dark: #121212;
+  --el-border-color: #141414;            /* 面板硬质物理分界线 */
+  --el-border-color-light: #252525;      /* 控件轮廓描边 */
+  --el-border-color-lighter: #303030;    /* 次级分割线 */
+  --el-border-color-extra-light: #3a3a3a;
+
+  /* --- 阴影收敛 (去除现代 Web 弥散阴影，改用锐利微暗影) --- */
+  --el-box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  --el-box-shadow-light: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --el-box-shadow-lighter: 0 1px 1px rgba(0, 0, 0, 0.2);
+  --el-box-shadow-dark: 0 4px 12px rgba(0, 0, 0, 0.65);
+}
+
+/* ========================================================
+   2. 核心组件密度压缩与工业级样式精修
+   ======================================================== */
+
+/* --- 按钮 (Button) --- */
+.el-button {
+  font-weight: 500;
+  border-width: 1px;
+}
+.el-button--small {
+  height: 20px;
+  padding: 0 7px;
+  font-size: 11px;
+}
+.el-button:not(.el-button--primary):not(.el-button--success):not(.el-button--danger):not(.el-button--warning) {
+  background-color: var(--el-fill-color);
+  border-color: var(--el-border-color-dark);
+  color: var(--el-text-color-primary);
+}
+.el-button:not(.el-button--primary):hover {
+  background-color: var(--el-fill-color-lighter);
+  border-color: var(--el-border-color-light);
+  color: #ffffff;
+}
+
+/* --- 输入框与选择框 (Input & Select) --- */
+.el-input--small .el-input__wrapper,
+.el-select--small .el-select__wrapper {
+  height: 20px;
+  line-height: 20px;
+  padding: 0 5px;
+  background-color: var(--el-fill-color-blank) !important;
+  box-shadow: 0 0 0 1px var(--el-border-color-light) inset !important;
+  border-radius: var(--el-border-radius-base);
+}
+.el-input--small .el-input__wrapper.is-focus,
+.el-select--small .el-select__wrapper.is-focused {
+  box-shadow: 0 0 0 1px var(--el-color-primary-light-3) inset !important;
+}
+.el-input__inner {
+  font-size: 11px;
+  color: var(--el-text-color-primary) !important;
+}
+
+/* --- 表格 (Table) - 极高密度紧凑行 --- */
+.el-table {
+  --el-table-border-color: #1a1a1a;
+  --el-table-header-bg-color: #2e2e2e;
+  --el-table-header-text-color: #cfcfcf;
+  --el-table-row-hover-bg-color: #2f2f2f;
+  --el-table-current-row-bg-color: var(--el-color-primary);
+  font-size: 11px;
+  background-color: var(--el-bg-color);
+}
+.el-table th.el-table__cell {
+  height: 24px;
+  padding: 2px 0;
+  font-weight: 600;
+  border-bottom: 1px solid #141414 !important;
+}
+.el-table td.el-table__cell {
+  height: 22px;
+  padding: 2px 0;
+  border-bottom: 1px solid #1e1e1e !important;
+}
+.el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
+  background: #202020;
+}
+
+/* --- 卡片 (Card) --- */
+.el-card {
+  --el-card-bg-color: var(--el-bg-color);
+  --el-card-border-color: var(--el-border-color);
+  --el-card-padding: 8px 10px;
+  border-radius: var(--el-border-radius-base);
+  box-shadow: none !important;
+}
+.el-card__header {
+  height: 26px;
+  padding: 3px 10px;
+  background-color: #2b2b2b;
+  border-bottom: 1px solid #181818;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+/* --- 树结构 (Tree) - 贴合 Unity Hierarchy --- */
+.el-tree {
+  background-color: transparent;
+  color: var(--el-text-color-regular);
+  font-size: 11px;
+}
+.el-tree-node__content {
+  height: 20px;
+  border-radius: 1px;
+}
+.el-tree-node__content:hover {
+  background-color: #2e2e2e;
+}
+.el-tree-node.is-current > .el-tree-node__content {
+  background-color: var(--el-color-primary) !important;
+  color: #ffffff !important;
+}
+
+/* --- 标签页 (Tabs) --- */
+.el-tabs--border-card {
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color);
+}
+.el-tabs--border-card > .el-tabs__header {
+  background-color: #222222;
+  border-bottom: 1px solid #161616;
+}
+.el-tabs--border-card > .el-tabs__header .el-tabs__item {
+  height: 24px;
+  line-height: 24px;
+  font-size: 11px;
+  color: #999;
+  border-right: 1px solid #1a1a1a;
+}
+.el-tabs--border-card > .el-tabs__header .el-tabs__item.is-active {
+  background-color: var(--el-bg-color);
+  color: #fff;
+  border-bottom-color: var(--el-bg-color);
+  font-weight: 600;
+}
+
+/* --- 单选按钮组 (Radio Button) 工具栏形态 --- */
+.el-radio-button__inner {
+  height: 22px;
+  line-height: 20px;
+  padding: 0 9px;
+  font-size: 11px;
+  background-color: #2c2c2c;
+  border-color: #181818 !important;
+  color: #aaa;
+}
+.el-radio-button:first-child .el-radio-button__inner {
+  border-radius: var(--el-border-radius-base) 0 0 var(--el-border-radius-base);
+}
+.el-radio-button:last-child .el-radio-button__inner {
+  border-radius: 0 var(--el-border-radius-base) var(--el-border-radius-base) 0;
+}
+.el-radio-button__original-radio:checked + .el-radio-button__inner {
+  background-color: var(--el-color-primary);
+  border-color: var(--el-color-primary) !important;
+  color: #ffffff;
+  box-shadow: none !important;
+}
+
+/* --- 标签 (Tag) --- */
+.el-tag--small {
+  height: 18px;
+  line-height: 16px;
+  padding: 0 5px;
+  font-size: 10px;
+  border-radius: 2px;
+}
+
+/* --- 对话框 (Dialog) --- */
+.el-dialog {
+  background-color: #282828 !important;
+  border: 1px solid #111111;
+  border-radius: var(--el-border-radius-base);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7) !important;
+  padding: 0 !important;
+}
+.el-dialog__header {
+  height: 28px;
+  padding: 4px 12px;
+  background-color: #333333;
+  border-bottom: 1px solid #1c1c1c;
+  margin-right: 0 !important;
+}
+.el-dialog__title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+.el-dialog__body {
+  padding: 12px 14px !important;
+  color: var(--el-text-color-regular);
+}
+.el-dialog__footer {
+  padding: 6px 12px !important;
+  background-color: #242424;
+  border-top: 1px solid #1c1c1c;
+}
+
+/* ========================================================
+   3. Unity 风格滚动条定制 (高密工业级极细暗灰槽道)
+   ======================================================== */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #1e1e1e;
+  border-left: 1px solid #141414;
+}
+::-webkit-scrollbar-thumb {
+  background: #444444;
+  border: 2px solid #1e1e1e;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #606060;
+}
+::-webkit-scrollbar-corner {
+  background: #1e1e1e;
+}

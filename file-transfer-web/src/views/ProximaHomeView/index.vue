@@ -99,7 +99,7 @@
       <!-- 2. 四大核心操作入口卡片 (New Project, Open Project, Maintenance, Cluster Master) -->
       <div class="action-cards-row">
         <!-- New Project 新建工程 -->
-        <button class="action-card card-new-project" @click="openNewProjectDialog">
+        <button class="action-card card-new-project card-anim-0" @click="openNewProjectDialog">
           <div class="card-icon-wrapper">
             <svg viewBox="0 0 32 32" class="card-svg" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="6" y="4" width="20" height="24" rx="3" />
@@ -111,7 +111,7 @@
         </button>
 
         <!-- Open Project 打开工程 -->
-        <button class="action-card card-secondary" @click="openExistingProjectDialog">
+        <button class="action-card card-secondary card-anim-1" @click="openExistingProjectDialog">
           <div class="card-icon-wrapper">
             <svg viewBox="0 0 32 32" class="card-svg" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 8 C4 6.9 4.9 6 6 6 H12 L15 9 H26 C27.1 9 28 9.9 28 11 V23 C28 24.1 27.1 25 26 25 H6 C4.9 25 4 24.1 4 23 Z" />
@@ -122,7 +122,7 @@
         </button>
 
         <!-- Maintenance 维护校准入口 -->
-        <button class="action-card card-secondary" @click="navigateToMaintenance">
+        <button class="action-card card-secondary card-anim-2" @click="navigateToMaintenance">
           <div class="card-icon-wrapper">
             <svg viewBox="0 0 32 32" class="card-svg wrench-icon" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M23.5 4.5 C21 2 17 2.5 14.5 5 L9.5 10 L5.5 14 C4.5 15 4.5 16.5 5.5 17.5 L12.5 24.5 C13.5 25.5 15 25.5 16 24.5 L20 20.5 L25 15.5 C27.5 13 28 9 25.5 6.5 L22.5 9.5 L19.5 6.5 L22.5 3.5 Z" />
@@ -132,7 +132,7 @@
         </button>
 
         <!-- Cluster Master 芯片检测集群中控 (1对多远程管控) -->
-        <button class="action-card card-secondary" @click="navigateToCluster" title="打开机台测控抽屉面板 (支持单机/多机切换)">
+        <button class="action-card card-secondary card-anim-3" @click="navigateToCluster" title="打开机台测控抽屉面板 (支持单机/多机切换)">
           <div class="card-icon-wrapper">
             <svg viewBox="0 0 32 32" class="card-svg" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <!-- 中心总控节点 (Master Hub) -->
@@ -164,9 +164,10 @@
 
         <div class="project-list-container">
           <div
-            v-for="project in recentProjects"
+            v-for="(project, index) in recentProjects"
             :key="project.id"
-            class="project-item-row"
+            class="project-item-row history-item-anim"
+            :style="{ animationDelay: `${0.35 + index * 0.08}s` }"
             @click="handleSelectProject(project)"
           >
             <!-- 左侧文件图标 -->
@@ -1177,7 +1178,7 @@ const launchModule = (path: string, project?: RecentProject | null) => {
   color: #9ca3af;
 }
 
-/* 2. 三大核心操作卡片 */
+/* 2. 四大核心操作卡片 (入场动效来自 statistics-cards.vue) */
 .action-cards-row {
   display: flex;
   align-items: center;
@@ -1196,9 +1197,48 @@ const launchModule = (path: string, project?: RecentProject | null) => {
   justify-content: center;
   gap: 10px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   outline: none;
   user-select: none;
+}
+
+@keyframes animation-translateY {
+  0% {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* 4 张入口卡片依次入场动效 */
+.card-anim-0 {
+  opacity: 0;
+  animation: animation-translateY 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: 0s;
+}
+.card-anim-1 {
+  opacity: 0;
+  animation: animation-translateY 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: 0.1s;
+}
+.card-anim-2 {
+  opacity: 0;
+  animation: animation-translateY 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: 0.2s;
+}
+.card-anim-3 {
+  opacity: 0;
+  animation: animation-translateY 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: 0.3s;
+}
+
+/* 悬浮微升与投影过渡 (来自 statistics-cards.vue hover:shadow-lg) */
+.action-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45) !important;
 }
 
 /* New Project 亮蓝高亮按钮 */
@@ -1210,9 +1250,8 @@ const launchModule = (path: string, project?: RecentProject | null) => {
 }
 
 .card-new-project:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.08);
-  box-shadow: 0 10px 26px rgba(14, 165, 233, 0.45);
+  filter: brightness(1.12);
+  box-shadow: 0 14px 30px rgba(14, 165, 233, 0.5) !important;
 }
 
 .card-new-project:active {
@@ -1228,10 +1267,8 @@ const launchModule = (path: string, project?: RecentProject | null) => {
 }
 
 .card-secondary:hover {
-  background-color: #464850;
-  border-color: rgba(255, 255, 255, 0.28);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.32);
+  background-color: #484a54;
+  border-color: rgba(255, 255, 255, 0.32);
 }
 
 .card-secondary:active {
@@ -1300,6 +1337,12 @@ const launchModule = (path: string, project?: RecentProject | null) => {
   gap: 2px;
 }
 
+/* 历史数据列表入场动效 (自 statistics-cards.vue 梯次瀑布入场) */
+.history-item-anim {
+  opacity: 0;
+  animation: animation-translateY 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 /* 最近工程行项 */
 .project-item-row {
   display: flex;
@@ -1307,11 +1350,13 @@ const launchModule = (path: string, project?: RecentProject | null) => {
   padding: 9px 10px;
   border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.16s ease, transform 0.1s ease;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .project-item-row:hover {
-  background-color: rgba(255, 255, 255, 0.06);
+  background-color: rgba(255, 255, 255, 0.08);
+  transform: translateX(6px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
 }
 
 .project-icon-box {
