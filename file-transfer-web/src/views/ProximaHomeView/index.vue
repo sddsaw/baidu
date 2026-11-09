@@ -349,6 +349,227 @@
       </template>
     </el-dialog>
 
+    <!-- ==================== 最近工程加载与执行进度弹窗 (Mock) ==================== -->
+    <el-dialog
+      v-model="projectLoadDialogVisible"
+      :show-close="true"
+      width="650px"
+      append-to-body
+      :close-on-click-modal="!isLoading"
+      :close-on-press-escape="!isLoading"
+      class="proxima-custom-dialog proxima-loading-dialog"
+      @closed="handleLoadDialogClosed"
+    >
+      <!-- 自定义标题栏 -->
+      <template #header>
+        <div class="loading-dialog-header">
+          <div class="dialog-header-left">
+            <div
+              class="dialog-header-icon"
+              :class="{
+                'is-loading': isLoading,
+                'is-success': isCompleted,
+                'is-cancelled': isCancelled
+              }"
+            >
+              <el-icon v-if="isLoading" class="rotating-icon"><Loading /></el-icon>
+              <el-icon v-else-if="isCompleted" class="success-icon"><CircleCheckFilled /></el-icon>
+              <el-icon v-else class="warn-icon"><Warning /></el-icon>
+            </div>
+            <div class="dialog-header-text">
+              <div class="dialog-title-row">
+                <span class="dialog-main-title">工程加载与执行初始化</span>
+                <span class="dialog-proj-badge">{{ selectedProject?.name }}</span>
+              </div>
+              <div class="dialog-sub-title">
+                <span class="path-text" :title="selectedProject?.path">{{ selectedProject?.path }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="dialog-header-status">
+            <span v-if="isLoading" class="header-timer">
+              <span class="pulse-dot"></span>
+              耗时 {{ elapsedSeconds.toFixed(1) }}s · 预估剩余 ~{{ estimatedRemainingSeconds }}s
+            </span>
+            <el-tag v-else-if="isCompleted" type="success" effect="dark" size="small" class="status-tag">
+              已就绪 100%
+            </el-tag>
+            <el-tag v-else-if="isCancelled" type="warning" effect="dark" size="small" class="status-tag">
+              已中止
+            </el-tag>
+          </div>
+        </div>
+      </template>
+
+      <div v-if="selectedProject" class="loading-dialog-body">
+        <!-- 1. 轻量化水平步骤轨道 (Horizontal Pipeline Rail) -->
+        <div class="horizontal-step-rail">
+          <div
+            v-for="(step, idx) in mockSteps"
+            :key="idx"
+            class="rail-step-item"
+            :class="{
+              'is-completed': idx < currentStepIndex || (isCompleted && idx === currentStepIndex),
+              'is-active': idx === currentStepIndex && !isCompleted && !isCancelled,
+              'is-pending': idx > currentStepIndex,
+              'is-interrupted': isCancelled && idx === currentStepIndex
+            }"
+          >
+            <div class="rail-step-node">
+              <el-icon v-if="idx < currentStepIndex || (isCompleted && idx === currentStepIndex)"><Check /></el-icon>
+              <el-icon v-else-if="idx === currentStepIndex && !isCancelled" class="rotating-icon"><Loading /></el-icon>
+              <el-icon v-else-if="idx === currentStepIndex && isCancelled"><Warning /></el-icon>
+              <span v-else>0{{ idx + 1 }}</span>
+            </div>
+            <div class="rail-step-info">
+              <span class="rail-step-label">{{ step.shortName }}</span>
+              <span class="rail-step-percent">{{ step.targetProgress }}%</span>
+            </div>
+            <div v-if="idx < mockSteps.length - 1" class="rail-step-line">
+              <div
+                class="rail-step-line-fill"
+                :style="{
+                  width: idx < currentStepIndex || isCompleted ? '100%' : (idx === currentStepIndex ? '50%' : '0%')
+                }"
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. 核心大字进度与主状态看板 -->
+        <div class="progress-hero-board">
+          <div class="hero-board-header">
+            <div class="hero-stage-badge">
+              <span class="stage-num-pill">阶段 0{{ currentStepIndex + 1 }} / 04</span>
+              <span class="stage-name-text">{{ isCompleted ? '全流程验证通过 · ATE 环境装配完毕' : mockSteps[currentStepIndex]?.title }}</span>
+            </div>
+            <div class="hero-percentage-box">
+              <span class="number-val">{{ Math.round(currentProgress) }}</span>
+              <span class="percent-symbol">%</span>
+            </div>
+          </div>
+
+          <!-- 丝滑流体进度条 -->
+          <div class="progress-bar-container">
+            <el-progress
+              :percentage="Math.min(100, Math.max(0, Math.round(currentProgress)))"
+              :stroke-width="10"
+              :show-text="false"
+              :striped="isLoading"
+              :striped-flow="isLoading"
+              :duration="14"
+              class="proxima-smooth-progress-bar"
+            />
+            <div
+              class="progress-laser-glow"
+              :style="{ width: `${Math.min(100, Math.max(0, currentProgress))}%` }"
+            ></div>
+          </div>
+        </div>
+
+        <!-- 3. 具体执行动作实时监控 (Live Action Monitor - 具体执行到哪一步) -->
+        <div class="live-action-monitor">
+          <div class="monitor-header">
+            <div class="monitor-title-left">
+              <span class="radar-ping"></span>
+              <span class="radar-dot"></span>
+              <span class="monitor-tag">具体执行动作 (CURRENT ACTION)</span>
+            </div>
+            <span class="throughput-chip">{{ currentThroughput }}</span>
+          </div>
+          <div class="monitor-body">
+            <transition name="fade-fast" mode="out-in">
+              <div :key="currentMicroAction" class="micro-action-line">
+                <el-icon class="pulse-caret"><CaretRight /></el-icon>
+                <span class="micro-text code-font">{{ currentMicroAction }}</span>
+              </div>
+            </transition>
+          </div>
+        </div>
+
+        <!-- 4. ATE 机台与芯片测试遥测微仪表条 (ATE Telemetry Strip) -->
+        <div class="ate-telemetry-strip">
+          <div class="telemetry-item">
+            <span class="telemetry-label">测试芯片工艺</span>
+            <span class="telemetry-val highlight-cyan">TSMC 7nm FinFET</span>
+          </div>
+          <div class="telemetry-sep"></div>
+          <div class="telemetry-item">
+            <span class="telemetry-label">测试向量装配</span>
+            <span class="telemetry-val highlight-blue">{{ currentVectorCount }}</span>
+          </div>
+          <div class="telemetry-sep"></div>
+          <div class="telemetry-item">
+            <span class="telemetry-label">虚拟 ATE 通道</span>
+            <span class="telemetry-val highlight-green">{{ currentChannelStatus }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 底部操作区 -->
+      <template #footer>
+        <div class="loading-dialog-footer">
+          <div class="footer-left-actions">
+            <el-button
+              v-if="!isLoading"
+              size="small"
+              class="replay-btn"
+              @click="replayMockLoading"
+            >
+              <el-icon style="margin-right: 4px"><RefreshRight /></el-icon>
+              重新模拟载入
+            </el-button>
+            <el-button
+              size="small"
+              class="details-btn"
+              @click="openProjectDetailsFromLoading"
+            >
+              <el-icon style="margin-right: 4px"><Document /></el-icon>
+              查看工程属性
+            </el-button>
+          </div>
+
+          <div class="footer-right-actions">
+            <!-- 运行中状态按钮 -->
+            <template v-if="isLoading">
+              <el-button @click="cancelMockLoading">中止载入</el-button>
+              <el-button type="primary" plain @click="runInBackground">
+                后台运行 (不阻塞操作)
+              </el-button>
+            </template>
+
+            <!-- 中止状态按钮 -->
+            <template v-else-if="isCancelled">
+              <el-button @click="projectLoadDialogVisible = false">关闭</el-button>
+              <el-button type="primary" @click="replayMockLoading">
+                <el-icon style="margin-right: 4px"><RefreshRight /></el-icon>
+                恢复载入
+              </el-button>
+            </template>
+
+            <!-- 完成状态按钮 -->
+            <template v-else-if="isCompleted">
+              <el-button @click="projectLoadDialogVisible = false">关闭</el-button>
+              <el-button
+                type="primary"
+                @click="launchModuleFromLoading('/waveform')"
+              >
+                <el-icon style="margin-right: 4px"><Monitor /></el-icon>
+                进入波形仿真引擎
+              </el-button>
+              <el-button
+                type="success"
+                @click="launchModuleFromLoading('/instrument')"
+              >
+                <el-icon style="margin-right: 4px"><Odometer /></el-icon>
+                连接 ATE 机台测试
+              </el-button>
+            </template>
+          </div>
+        </div>
+      </template>
+    </el-dialog>
+
     <!-- ==================== 芯片检测机台管控抽屉 (根据 flag 控制单机/多机展示) ==================== -->
     <el-drawer
       v-model="clusterDrawerVisible"
@@ -631,7 +852,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
@@ -642,7 +863,13 @@ import {
   Odometer,
   SetUp,
   Connection,
-  Warning
+  Warning,
+  Check,
+  CircleCheckFilled,
+  Loading,
+  RefreshRight,
+  Document,
+  CaretRight
 } from '@element-plus/icons-vue'
 
 interface RecentProject {
@@ -650,6 +877,13 @@ interface RecentProject {
   name: string
   path: string
   date: string
+}
+
+interface MockStep {
+  shortName: string
+  title: string
+  targetProgress: number
+  microActions: string[]
 }
 
 const router = useRouter()
@@ -662,6 +896,244 @@ const newProjectDialogVisible = ref(false)
 const openProjectDialogVisible = ref(false)
 const projectDetailsVisible = ref(false)
 const selectedProject = ref<RecentProject | null>(null)
+
+// ==================== 最近工程执行进度与加载状态 (Mock) ====================
+const projectLoadDialogVisible = ref(false)
+const isLoading = ref(false)
+const isCompleted = ref(false)
+const isCancelled = ref(false)
+const currentStepIndex = ref(0)
+const currentProgress = ref(0)
+const elapsedSeconds = ref(0)
+
+// 实时微动作与 ATE 机台遥测指标
+const currentMicroAction = ref('正在初始化 ATE 测试内核引擎...')
+const currentThroughput = ref('128 MB/s')
+const currentVectorCount = ref('0 / 24,000')
+const currentChannelStatus = ref('64 通道准备中')
+
+const estimatedRemainingSeconds = computed(() => {
+  if (isCompleted.value) return 0
+  const remaining = Math.max(0, Math.ceil((100 - currentProgress.value) / 28))
+  return remaining
+})
+
+// 4 大半导体测试工程初始化阶段 Mock 步序定义
+const mockSteps: MockStep[] = [
+  {
+    shortName: '拓扑解析',
+    title: '解析芯片引脚与工程拓扑配置',
+    targetProgress: 25,
+    microActions: [
+      '正在读取 TSMC 7nm 器件结构规格: config.mvs',
+      '正在加载 Pin Map: 绑定 64 通道数字 IO 与 8 通道 VI 模拟引脚',
+      '校验引脚阻抗与电气电平约束规范: 100% 通过'
+    ]
+  },
+  {
+    shortName: '向量装载',
+    title: '编译并装载 ATE 高速数字测试向量',
+    targetProgress: 58,
+    microActions: [
+      '正在流式解压数字测试向量: 12nm_logic_func.pat (4,800 Vecs)',
+      '正在对齐时序波形基准约束: 200MHz 采样率已锁定 (16,200 Vecs)',
+      '构建高速波形查找索引，预热内存二级缓存 (24,000 Cycles 就绪)'
+    ]
+  },
+  {
+    shortName: '机台握手',
+    title: '建立 ATE 测试机台硬件握手链路',
+    targetProgress: 85,
+    microActions: [
+      '发起 PXIe 虚拟测试机台链路通信请求: PXIe-ATE-Link #1',
+      '时钟锁相环同步: Ref Clock 100MHz 锁定 (时钟抖动 < 1.2ps)',
+      '正在校准基准电压偏置与通道引脚电平: CH00~CH63 校准完成 (+0.038mV)'
+    ]
+  },
+  {
+    shortName: '环境自检',
+    title: '工程全流程语法与电气自检就绪',
+    targetProgress: 100,
+    microActions: [
+      '执行测试运行前置依赖安全检查: [Pattern, PinMap, HardwareLink] 全部合格',
+      '分配显存与波形渲染引擎缓冲区 (128MB 纹理内存锁定)',
+      '工程环境装配完毕，ATE 半导体测试平台已准备就绪！'
+    ]
+  }
+]
+
+let progressAnimId: number | null = null
+let stepTimeoutId: any = null
+let elapsedIntervalId: any = null
+let microActionIntervalId: any = null
+
+// 清理所有动效与计时器
+const stopAllTimers = () => {
+  if (progressAnimId !== null) {
+    cancelAnimationFrame(progressAnimId)
+    progressAnimId = null
+  }
+  if (stepTimeoutId) {
+    clearTimeout(stepTimeoutId)
+    stepTimeoutId = null
+  }
+  if (elapsedIntervalId) {
+    clearInterval(elapsedIntervalId)
+    elapsedIntervalId = null
+  }
+  if (microActionIntervalId) {
+    clearInterval(microActionIntervalId)
+    microActionIntervalId = null
+  }
+}
+
+// 丝滑执行单一步序动画 (带缓动插值)
+const runStep = (stepIdx: number) => {
+  if (!isLoading.value) return
+  currentStepIndex.value = stepIdx
+  const step = mockSteps[stepIdx]
+
+  // 微执行文案轮播与机台指标更新
+  let subIdx = 0
+  currentMicroAction.value = step.microActions[0]
+  if (microActionIntervalId) clearInterval(microActionIntervalId)
+  microActionIntervalId = setInterval(() => {
+    if (!isLoading.value) return
+    subIdx++
+    if (subIdx < step.microActions.length) {
+      currentMicroAction.value = step.microActions[subIdx]
+    }
+  }, 240)
+
+  // 遥测指标随阶段演进
+  if (stepIdx === 0) {
+    currentThroughput.value = '145 MB/s'
+    currentVectorCount.value = '4,200 / 24,000'
+    currentChannelStatus.value = '拓扑映射中'
+  } else if (stepIdx === 1) {
+    currentThroughput.value = '285 KVec/s'
+    currentVectorCount.value = '16,800 / 24,000'
+    currentChannelStatus.value = '内存预热中'
+  } else if (stepIdx === 2) {
+    currentThroughput.value = '0.18ms 延时'
+    currentVectorCount.value = '24,000 / 24,000'
+    currentChannelStatus.value = '64/64 锁相中'
+  } else if (stepIdx === 3) {
+    currentThroughput.value = '就绪 (Ready)'
+    currentVectorCount.value = '24,000 / 24,000'
+    currentChannelStatus.value = '64/64 锁定 (100MHz)'
+  }
+
+  const startProgress = currentProgress.value
+  const targetProgress = step.targetProgress
+  const duration = 750 // 单步动画时长 (ms)
+  const startTime = performance.now()
+
+  const tick = () => {
+    if (!isLoading.value) return
+    const now = performance.now()
+    const elapsed = now - startTime
+    const t = Math.min(1, elapsed / duration)
+    // easeOutCubic 丝滑缓动曲线
+    const ease = 1 - Math.pow(1 - t, 3)
+    currentProgress.value = startProgress + (targetProgress - startProgress) * ease
+
+    if (t < 1) {
+      progressAnimId = requestAnimationFrame(tick)
+    } else {
+      currentProgress.value = targetProgress
+      progressAnimId = null
+
+      if (stepIdx < mockSteps.length - 1) {
+        // 步骤间自然缓冲停留 180ms
+        stepTimeoutId = setTimeout(() => {
+          runStep(stepIdx + 1)
+        }, 180)
+      } else {
+        // 完成全部步骤
+        isLoading.value = false
+        isCompleted.value = true
+        currentMicroAction.value = '所有芯片引脚、测试向量拓扑与硬件链路校验合格，工程准备就绪'
+        currentThroughput.value = 'Ready'
+        currentVectorCount.value = '24,000 / 24,000 (100%)'
+        currentChannelStatus.value = '64 通道已锁定 (Lock)'
+        ElMessage.success(`工程 [${selectedProject.value?.name}] 载入完成`)
+      }
+    }
+  }
+
+  progressAnimId = requestAnimationFrame(tick)
+}
+
+// 启动 Mock 工程加载流程
+const startMockProjectLoading = (project: RecentProject) => {
+  stopAllTimers()
+  selectedProject.value = project
+  projectLoadDialogVisible.value = true
+  isLoading.value = true
+  isCompleted.value = false
+  isCancelled.value = false
+  currentStepIndex.value = 0
+  currentProgress.value = 0
+  elapsedSeconds.value = 0
+  currentMicroAction.value = '正在建立 ATE 测试运行时环境与拓扑链接...'
+  currentThroughput.value = '120 MB/s'
+  currentVectorCount.value = '0 / 24,000'
+  currentChannelStatus.value = '64 通道准备中'
+
+  const startTime = performance.now()
+  elapsedIntervalId = setInterval(() => {
+    if (isLoading.value) {
+      elapsedSeconds.value = Number(((performance.now() - startTime) / 1000).toFixed(1))
+    }
+  }, 100)
+
+  // 启动第一阶段步序
+  runStep(0)
+}
+
+// 重新模拟载入
+const replayMockLoading = () => {
+  if (selectedProject.value) {
+    startMockProjectLoading(selectedProject.value)
+  }
+}
+
+// 取消加载
+const cancelMockLoading = () => {
+  stopAllTimers()
+  isLoading.value = false
+  isCancelled.value = true
+  ElMessage.warning('工程载入已中止')
+}
+
+// 后台运行
+const runInBackground = () => {
+  projectLoadDialogVisible.value = false
+  ElMessage.info(`工程 [${selectedProject.value?.name}] 已转入后台持续载入...`)
+}
+
+// 从加载弹窗进入具体系统模块
+const launchModuleFromLoading = (path: string) => {
+  projectLoadDialogVisible.value = false
+  launchModule(path, selectedProject.value)
+}
+
+// 从加载弹窗查看静态工程详情
+const openProjectDetailsFromLoading = () => {
+  projectDetailsVisible.value = true
+}
+
+// 弹窗关闭回调
+const handleLoadDialogClosed = () => {
+  if (!isLoading.value) {
+    stopAllTimers()
+  }
+}
+
+onBeforeUnmount(() => {
+  stopAllTimers()
+})
 
 // 控制机台管控抽屉的显示
 const clusterDrawerVisible = ref(false)
@@ -937,9 +1409,8 @@ const confirmCreateProject = () => {
   newProjectDialogVisible.value = false
   ElMessage.success(`工程 [${newProj.name}] 创建成功`)
 
-  // 展开工程详情
-  selectedProject.value = newProj
-  projectDetailsVisible.value = true
+  // 触发工程加载与执行初始化进度弹窗
+  startMockProjectLoading(newProj)
 }
 
 // 打开已有工程
@@ -988,14 +1459,13 @@ const confirmOpenProject = () => {
 
   openProjectDialogVisible.value = false
   ElMessage.success(`工程 [${targetProject.name}] 载入就绪`)
-  selectedProject.value = targetProject
-  projectDetailsVisible.value = true
+  // 触发工程加载与执行初始化进度弹窗
+  startMockProjectLoading(targetProject)
 }
 
-// 选择最近工程
+// 选择最近工程并触发进度弹窗
 const handleSelectProject = (project: RecentProject) => {
-  selectedProject.value = project
-  projectDetailsVisible.value = true
+  startMockProjectLoading(project)
 }
 
 // 复制路径
@@ -2109,5 +2579,598 @@ const launchModule = (path: string, project?: RecentProject | null) => {
   .recent-projects-panel {
     max-width: 100%;
   }
+}
+</style>
+
+<style>
+/* ========================================================
+   Proxima 最近工程加载与执行进度弹窗 (全局深色工业风)
+   ======================================================== */
+.proxima-loading-dialog.el-dialog {
+  background: #18191e !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+  overflow: hidden;
+  padding: 0 !important;
+  backdrop-filter: blur(16px);
+}
+
+.proxima-loading-dialog .el-dialog__header {
+  height: auto !important;
+  min-height: 68px !important;
+  margin: 0 !important;
+  padding: 16px 20px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  background: linear-gradient(180deg, #22242b 0%, #1c1e24 100%) !important;
+}
+
+.proxima-loading-dialog .el-dialog__headerbtn {
+  top: 22px !important;
+  right: 18px !important;
+}
+
+.proxima-loading-dialog .el-dialog__headerbtn .el-dialog__close {
+  color: #94a3b8;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+.proxima-loading-dialog .el-dialog__headerbtn:hover .el-dialog__close {
+  color: #ffffff;
+  transform: rotate(90deg);
+}
+
+.proxima-loading-dialog .el-dialog__body {
+  padding: 20px 22px !important;
+  background-color: #18191e;
+  color: #e2e8f0;
+}
+
+.proxima-loading-dialog .el-dialog__footer {
+  margin: 0 !important;
+  padding: 14px 22px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  background-color: #1e2026;
+}
+
+/* 顶部标题区 */
+.loading-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: 28px;
+}
+
+.dialog-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dialog-header-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.dialog-header-icon.is-loading {
+  background: rgba(14, 165, 233, 0.15);
+  border-color: rgba(14, 165, 233, 0.35);
+  color: #38bdf8;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.25);
+}
+
+.dialog-header-icon.is-success {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.35);
+  color: #34d399;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.25);
+}
+
+.dialog-header-icon.is-cancelled {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+}
+
+.dialog-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dialog-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dialog-main-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f8fafc;
+  letter-spacing: 0.3px;
+}
+
+.dialog-proj-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  font-family: monospace;
+}
+
+.dialog-sub-title .path-text {
+  font-size: 11.5px;
+  color: #71717a;
+  font-family: Consolas, "Courier New", monospace;
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.pulse-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #38bdf8;
+  animation: pulse-ring 1.5s infinite;
+}
+
+.header-timer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: #94a3b8;
+  font-family: Consolas, monospace;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 3px 9px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* 1. 轻量级水平步骤轨道 */
+.horizontal-step-rail {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+}
+
+.rail-step-item {
+  display: flex;
+  align-items: center;
+  position: relative;
+  flex: 1;
+}
+
+.rail-step-item:last-child {
+  flex: none;
+}
+
+.rail-step-node {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  margin-right: 8px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
+
+.is-completed .rail-step-node {
+  background: #10b981;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.45);
+}
+
+.is-active .rail-step-node {
+  background: #0284c7;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(14, 165, 233, 0.6);
+  animation: pulse-ring 1.8s infinite;
+}
+
+.is-interrupted .rail-step-node {
+  background: #d97706;
+  color: #ffffff;
+}
+
+.is-pending .rail-step-node {
+  background: rgba(255, 255, 255, 0.06);
+  color: #64748b;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.rail-step-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.rail-step-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  transition: color 0.3s;
+  white-space: nowrap;
+}
+
+.is-active .rail-step-label {
+  color: #38bdf8;
+}
+
+.is-completed .rail-step-label {
+  color: #cbd5e1;
+}
+
+.rail-step-percent {
+  font-size: 10px;
+  color: #475569;
+  font-family: monospace;
+}
+
+.rail-step-line {
+  flex: 1;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 0 10px;
+  border-radius: 1px;
+  overflow: hidden;
+  position: relative;
+}
+
+.rail-step-line-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #06b6d4);
+  transition: width 0.35s ease;
+}
+
+/* 2. 主状态大字看板与进度条 */
+.progress-hero-board {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 12px;
+}
+
+.hero-board-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.hero-stage-badge {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.stage-num-pill {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #38bdf8;
+  background: rgba(14, 165, 233, 0.15);
+  padding: 2px 7px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+  align-self: flex-start;
+}
+
+.stage-name-text {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.2px;
+}
+
+.hero-percentage-box {
+  display: flex;
+  align-items: baseline;
+  line-height: 1;
+}
+
+.number-val {
+  font-size: 36px;
+  font-weight: 800;
+  font-family: Consolas, -apple-system, monospace;
+  background: linear-gradient(135deg, #38bdf8 0%, #00e5a3 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.45));
+}
+
+.percent-symbol {
+  font-size: 18px;
+  font-weight: 700;
+  color: #00e5a3;
+  margin-left: 2px;
+}
+
+.progress-bar-container {
+  position: relative;
+  width: 100%;
+}
+
+.proxima-smooth-progress-bar .el-progress-bar__outer {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-radius: 6px !important;
+  overflow: hidden;
+}
+
+.proxima-smooth-progress-bar .el-progress-bar__inner {
+  background: linear-gradient(90deg, #00e5a3 0%, #06b6d4 40%, #3b82f6 75%, #10b981 100%) !important;
+  border-radius: 6px !important;
+  transition: width 0.3s cubic-bezier(0.22, 1, 0.36, 1) !important;
+  box-shadow: 0 0 16px rgba(6, 182, 212, 0.55);
+}
+
+.progress-laser-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 10px;
+  border-radius: 6px;
+  background: radial-gradient(circle at 100% 50%, rgba(56, 189, 248, 0.45) 0%, transparent 60%);
+  pointer-events: none;
+  transition: width 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 3. 具体执行动作实时监控卡片 */
+.live-action-monitor {
+  background: #111319;
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.monitor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.monitor-title-left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  position: relative;
+}
+
+.radar-ping {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #38bdf8;
+  position: relative;
+}
+
+.radar-ping::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 1.5px solid #38bdf8;
+  animation: radar-wave 1.6s infinite ease-out;
+}
+
+.monitor-tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: #38bdf8;
+  letter-spacing: 0.4px;
+  font-family: Consolas, monospace;
+}
+
+.throughput-chip {
+  font-size: 11px;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-family: monospace;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.monitor-body {
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+}
+
+.micro-action-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.pulse-caret {
+  color: #38bdf8;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.micro-text {
+  font-size: 12px;
+  color: #e2e8f0;
+  font-family: Consolas, "JetBrains Mono", monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 4. ATE 机台与芯片测试遥测微仪表条 */
+.ate-telemetry-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 9px 16px;
+  margin-bottom: 2px;
+}
+
+.telemetry-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.telemetry-label {
+  font-size: 10.5px;
+  color: #64748b;
+}
+
+.telemetry-val {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: Consolas, monospace;
+}
+
+.highlight-cyan { color: #38bdf8; }
+.highlight-blue { color: #818cf8; }
+.highlight-green { color: #34d399; }
+
+.telemetry-sep {
+  width: 1px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+@keyframes radar-wave {
+  0% { transform: scale(0.6); opacity: 1; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+.fade-fast-enter-active,
+.fade-fast-leave-active {
+  transition: all 0.2s ease;
+}
+
+.fade-fast-enter-from {
+  opacity: 0;
+  transform: translateX(4px);
+}
+
+.fade-fast-leave-to {
+  opacity: 0;
+  transform: translateX(-4px);
+}
+
+/* 底部操作区 */
+.loading-dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.footer-left-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.footer-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.replay-btn, .details-btn {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #cbd5e1 !important;
+}
+
+.replay-btn:hover, .details-btn:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+}
+
+/* 动效与动画关键帧 */
+@keyframes rotating {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.rotating-icon {
+  animation: rotating 1.4s linear infinite;
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.55); }
+  70% { box-shadow: 0 0 0 8px rgba(56, 189, 248, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
+}
+
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* 步骤切换平滑动效 */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+/* 自定义滚动条 */
+.custom-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
 </style>
