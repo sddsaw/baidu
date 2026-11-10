@@ -86,6 +86,16 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/inspector',
+    name: 'Inspector',
+    component: () => import('@/views/InspectorView.vue'),
+    meta: {
+      title: 'ATE 属性检查器 (Inspector)',
+      icon: 'Setting',
+      desc: '仿 Unity 风格 ATE 芯片测试属性检查器'
+    }
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/transfer'
   }

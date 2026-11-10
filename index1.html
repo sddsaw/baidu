@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATE Inspector - Unity Style</title>
+  <!-- 引入 Iconify 图标库 -->
+  <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+  <style>
+    :root {
+      --bg-dark: #191919;
+      --bg-panel: #202020;
+      --bg-subpanel: #262626;
+      --bg-hover: #2e2e2e;
+      --bg-active: #383838;
+      --bg-input: #151515;
+      --border-color: #333333;
+      --border-light: #444444;
+      --text-main: #dcdcdc;
+      --text-muted: #8c8c8c;
+      --text-bright: #ffffff;
+      --accent-blue: #2c5d88;
+      --accent-blue-hover: #356f9e;
+      --accent-cyan: #3884ff;
+      --status-pass: #4caf50;
+      --status-warn: #ff9800;
+      --status-fail: #f44336;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: #121212;
+      color: var(--text-main);
+      font-family: var(--font-family);
+      font-size: 12px;
+      line-height: 1.4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    /* 主 Inspector 面板容器 */
+    .unity-inspector {
+      width: 380px;
+      height: 820px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* 顶部导航 Tabs (Unity 顶部工具栏风) */
+    .tab-header {
+      background: var(--bg-dark);
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      padding: 3px 6px 0;
+      gap: 2px;
+    }
+
+    .tab-item {
+      padding: 6px 14px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      border-radius: 4px 4px 0 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+
+    .tab-item:hover {
+      color: var(--text-bright);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .tab-item.active {
+      background: var(--accent-blue);
+      color: var(--text-bright);
+      font-weight: 600;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+
+    .tab-badge {
+      background: #444;
+      color: #fff;
+      font-size: 10px;
+      padding: 0 5px;
+      border-radius: 8px;
+    }
+    .tab-item.active .tab-badge {
+      background: rgba(0, 0, 0, 0.35);
+    }
+
+    /* 面板标题条与面包屑 */
+    .panel-headline {
+      padding: 10px 14px;
+      background: linear-gradient(180deg, var(--bg-subpanel) 0%, var(--bg-panel) 100%);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .target-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .target-type {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--accent-cyan);
+    }
+
+    .target-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-bright);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tool-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .action-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+
+    .action-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-bright);
+    }
+    .action-btn.active {
+      color: var(--accent-cyan);
+    }
+
+    /* 属性滚动主区域 */
+    .scroll-body {
+      flex: 1;
+      overflow-y: overlay;
+      overflow-x: hidden;
+      padding: 6px 0;
+    }
+
+    .scroll-body::-webkit-scrollbar {
+      width: 6px;
+    }
+    .scroll-body::-webkit-scrollbar-thumb {
+      background: #3a3a3a;
+      border-radius: 3px;
+    }
+    .scroll-body::-webkit-scrollbar-thumb:hover {
+      background: #505050;
+    }
+
+    /* Unity 经典 Accordion 折叠卡片 */
+    .foldout-group {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .foldout-header {
+      padding: 7px 12px;
+      background: var(--bg-panel);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    .foldout-header:hover {
+      background: var(--bg-hover);
+    }
+
+    .foldout-title {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-bright);
+    }
+
+    .foldout-arrow {
+      color: var(--text-muted);
+      font-size: 14px;
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .foldout-group.open .foldout-arrow {
+      transform: rotate(90deg);
+      color: var(--text-bright);
+    }
+
+    .foldout-header-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-pill {
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+    .status-pill.pass {
+      background: rgba(76, 175, 80, 0.15);
+      color: var(--status-pass);
+      border: 1px solid rgba(76, 175, 80, 0.3);
+    }
+
+    /* 折叠容器过渡动画 (使用 Grid 0fr -> 1fr) */
+    .foldout-content-wrapper {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+      background: var(--bg-subpanel);
+    }
+
+    .foldout-group.open .foldout-content-wrapper {
+      grid-template-rows: 1fr;
+    }
+
+    .foldout-content {
+      overflow: hidden;
+      padding: 0 14px;
+    }
+
+    .foldout-group.open .foldout-content {
+      padding: 8px 14px 12px;
+    }
+
+    /* 属性键值对排版 (Unity 2-Column Inspector 规范) */
+    .prop-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 7px;
+      font-size: 11px;
+    }
+    .prop-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .prop-label {
+      color: var(--text-muted);
+      width: 42%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .prop-value {
+      width: 58%;
+      color: var(--text-bright);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .unity-input {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: 3px;
+      color: #fff;
+      padding: 3px 7px;
+      font-size: 11px;
+      font-family: inherit;
+      outline: none;
+      transition: border 0.15s;
+    }
+    .unity-input:focus {
+      border-color: var(--accent-cyan);
+    }
+
+    /* ATE Pin 统计网格 */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+
+    .stat-card {
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 6px 8px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stat-title {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .stat-num {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-bright);
+      margin-top: 2px;
+      font-family: monospace;
+    }
+
+    /* 校验结果条目 */
+    .val-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
+    .val-item:last-child { border: none; }
+    .val-text { flex: 1; color: var(--text-main); font-size: 11px; }
+
+    /* 底部 Related Entities 空状态 (Empty State) */
+    .empty-state-section {
+      padding: 16px 14px;
+      margin: 12px 14px;
+      background: var(--bg-subpanel);
+      border: 1px dashed var(--border-light);
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .empty-state-section:hover {
+      border-color: var(--accent-cyan);
+      background: rgba(56, 132, 255, 0.03);
+    }
+
+    .empty-icon {
+      font-size: 26px;
+      color: var(--text-muted);
+      transition: transform 0.2s;
+    }
+    .empty-state-section:hover .empty-icon {
+      color: var(--accent-cyan);
+      transform: scale(1.1);
+    }
+
+    .empty-text {
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+
+    .empty-btn {
+      margin-top: 4px;
+      font-size: 10px;
+      color: var(--accent-cyan);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    /* 底部状态提示条 */
+    .panel-footer {
+      padding: 5px 12px;
+      background: var(--bg-dark);
+      border-top: 1px solid var(--border-color);
+      font-size: 10px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Unity 风格 Inspector 侧面板 -->
+  <div class="unity-inspector">
+    
+    <!-- 顶部 Tab 栏 -->
+    <div class="tab-header">
+      <div class="tab-item active">
+        <iconify-icon icon="mdi:tune-vertical"></iconify-icon>
+        <span>Inspector</span>
+      </div>
+      <div class="tab-item">
+        <iconify-icon icon="mdi:help-circle-outline"></iconify-icon>
+        <span>Help</span>
+      </div>
+      <div class="tab-item">
+        <iconify-icon icon="mdi:alert-circle-outline"></iconify-icon>
+        <span>Issues</span>
+        <span class="tab-badge">0</span>
+      </div>
+    </div>
+
+    <!-- 面板对象标题与固定按钮 -->
+    <div class="panel-headline">
+      <div class="target-info">
+        <span class="target-type">ATE Config Object</span>
+        <div class="target-title">
+          <iconify-icon icon="mdi:table-cog" style="color: var(--accent-cyan); font-size: 16px;"></iconify-icon>
+          <span>PINMAP TABLE</span>
+        </div>
+      </div>
+      <div class="tool-actions">
+        <button class="action-btn" title="Lock Inspector">
+          <iconify-icon icon="mdi:pin-outline"></iconify-icon>
+        </button>
+        <button class="action-btn" title="More Options">
+          <iconify-icon icon="mdi:dots-vertical"></iconify-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- 滚动内容区 -->
+    <div class="scroll-body">
+
+      <!-- 分组 1: Common Properties -->
+      <div class="foldout-group open">
+        <div class="foldout-header" onclick="toggleFoldout(this)">
+          <div class="foldout-title">
+            <iconify-icon class="foldout-arrow" icon="mdi:chevron-right"></iconify-icon>
+            <iconify-icon icon="mdi:file-document-outline" style="color: #64b5f6;"></iconify-icon>
+            <span>Common Properties</span>
+          </div>
+        </div>
+        <div class="foldout-content-wrapper">
+          <div class="foldout-content">
+            <div class="prop-row">
+              <span class="prop-label">Table Name</span>
+              <div class="prop-value">
+                <input class="unity-input" type="text" value="SOC_TOP_PINMAP_V1" />
+              </div>
+            </div>
+            <div class="prop-row">
+              <span class="prop-label">DUT Socket</span>
+              <div class="prop-value">
+                <input class="unity-input" type="text" value="Socket_Site_01" />
+              </div>
+            </div>
+            <div class="prop-row">
+              <span class="prop-label">Channel Map Mode</span>
+              <div class="prop-value">
+                <input class="unity-input" type="text" value="Direct 1:1" readonly style="opacity: 0.8;" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 分组 2: Pin Statistics (芯片测试引脚统计) -->
+      <div class="foldout-group open">
+        <div class="foldout-header" onclick="toggleFoldout(this)">
+          <div class="foldout-title">
+            <iconify-icon class="foldout-arrow" icon="mdi:chevron-right"></iconify-icon>
+            <iconify-icon icon="mdi:chart-box-outline" style="color: #ba68c8;"></iconify-icon>
+            <span>Pin Statistics</span>
+          </div>
+          <span style="font-size: 10px; color: var(--text-muted); font-family: monospace;">Total: 128</span>
+        </div>
+        <div class="foldout-content-wrapper">
+          <div class="foldout-content">
+            <div class="stat-grid">
+              <div class="stat-card">
+                <span class="stat-title">I/O Digital</span>
+                <span class="stat-num" style="color: #64b5f6;">64</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-title">DPS Power</span>
+                <span class="stat-num" style="color: #ffb74d;">24</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-title">GND Ground</span>
+                <span class="stat-num" style="color: #81c784;">32</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-title">Analog / RF</span>
+                <span class="stat-num" style="color: #e57373;">8</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 分组 3: Validation Results (规则校验结果) -->
+      <div class="foldout-group open">
+        <div class="foldout-header" onclick="toggleFoldout(this)">
+          <div class="foldout-title">
+            <iconify-icon class="foldout-arrow" icon="mdi:chevron-right"></iconify-icon>
+            <iconify-icon icon="mdi:shield-check-outline" style="color: var(--status-pass);"></iconify-icon>
+            <span>Validation Results</span>
+          </div>
+          <div class="foldout-header-right">
+            <span class="status-pill pass">PASSED</span>
+          </div>
+        </div>
+        <div class="foldout-content-wrapper">
+          <div class="foldout-content">
+            <div class="val-item">
+              <iconify-icon icon="mdi:check-circle" style="color: var(--status-pass); font-size: 14px;"></iconify-icon>
+              <span class="val-text">All tester channels valid & routed</span>
+            </div>
+            <div class="val-item">
+              <iconify-icon icon="mdi:check-circle" style="color: var(--status-pass); font-size: 14px;"></iconify-icon>
+              <span class="val-text">No floating / unassigned pins</span>
+            </div>
+            <div class="val-item">
+              <iconify-icon icon="mdi:alert-circle" style="color: var(--status-warn); font-size: 14px;"></iconify-icon>
+              <span class="val-text">Pin 'CLK_EXT' has high skew</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 分组 4: Related Entities / 空状态 (统一精致排版) -->
+      <div class="foldout-group open">
+        <div class="foldout-header" onclick="toggleFoldout(this)">
+          <div class="foldout-title">
+            <iconify-icon class="foldout-arrow" icon="mdi:chevron-right"></iconify-icon>
+            <iconify-icon icon="mdi:link-variant" style="color: #4dd0e1;"></iconify-icon>
+            <span>Related Entities</span>
+          </div>
+        </div>
+        <div class="foldout-content-wrapper">
+          <div class="foldout-content">
+            <!-- 优化后的空状态：居中对齐、高质感触控交互 -->
+            <div class="empty-state-section" title="Click to associate test patterns or specs">
+              <iconify-icon class="empty-icon" icon="mdi:link-variant-off"></iconify-icon>
+              <div class="empty-text">No linked Timing or Pattern files</div>
+              <button class="empty-btn">+ Link Entity</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 底部状态栏 -->
+    <div class="panel-footer">
+      <span>Auto-save: Enabled</span>
+      <span>ATE Workspace v4.2</span>
+    </div>
+
+  </div>
+
+  <script>
+    // Unity 风格 Foldout 折叠展开交互函数
+    function toggleFoldout(header) {
+      const group = header.parentElement;
+      group.classList.toggle('open');
+    }
+
+    // Tab 切换逻辑
+    document.querySelectorAll('.tab-item').forEach(tab => {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

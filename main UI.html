@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Unity UI Builder - Pixel Perfect</title>
+    <style>
+        /* --- Unity Pro Theme Variables --- */
+        :root {
+            --bg-app: #202020;
+            --bg-panel: #282828;       /* Inspector background */
+            --bg-header: #383838;      /* Panel Headers */
+            --bg-toolbar: #3c3c3c;
+            --bg-input: #2a2a2a;
+            --bg-input-focus: #2a2a2a;
+            --bg-selection: #2c5d87;   /* Blue selection */
+            --bg-selection-inactive: #3e3e3e;
+            
+            --border-dark: #232323;
+            --border-light: #303030;
+            --border-input: #212121;
+            --border-focus: #3a72b0;   /* Focus blue outline */
+            
+            --text-main: #d2d2d2;
+            --text-muted: #b0b0b0;     /* Labels */
+            --text-disabled: #666;
+            
+            --font-main: 'Segoe UI', 'Inter', 'San Francisco', sans-serif;
+            --font-code: 'Consolas', 'Monaco', monospace;
+            
+            /* Scrollbar colors */
+            --scroll-track: #2a2a2a;
+            --scroll-thumb: #555555;
+            --scroll-thumb-hover: #777777;
+        }
+
+        * { box-sizing: border-box; user-select: none; cursor: default; }
+
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg-app);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            font-size: 12px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- Scrollbars (Unity Style) --- */
+        ::-webkit-scrollbar { width: 13px; height: 13px; }
+        ::-webkit-scrollbar-track { background: var(--scroll-track); border-left: 1px solid var(--border-dark); }
+        ::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border: 3px solid var(--scroll-track); border-radius: 6px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--scroll-thumb-hover); }
+        ::-webkit-scrollbar-corner { background: var(--scroll-track); }
+
+        /* --- Toolbar --- */
+        .toolbar {
+            height: 22px;
+            background: var(--bg-toolbar);
+            border-bottom: 1px solid #111;
+            display: flex;
+            align-items: center;
+            padding: 0 4px;
+            font-size: 12px;
+            flex-shrink: 0;
+            z-index: 999;
+        }
+        .toolbar-icon { width: 16px; height: 16px; margin-right: 8px; /* Placeholder for UI Builder Icon */ }
+        .menu-item { padding: 3px 8px; color: #ccc; cursor: pointer; }
+        .menu-item:hover { background-color: #505050; }
+        
+        /* Dropdowns */
+        .dropdown {
+            display: none; position: absolute; top: 22px; left: 0;
+            background: #2e2e2e; border: 1px solid #111;
+            box-shadow: 4px 4px 8px rgba(0,0,0,0.5); min-width: 180px; padding: 2px 0; z-index: 1000;
+        }
+        .dropdown.show { display: block; }
+        .dropdown-item { padding: 4px 20px; color: #ccc; display: flex; justify-content: space-between; }
+        .dropdown-item:hover { background-color: var(--bg-selection); color: #fff; }
+        .shortcut { color: #888; font-size: 10px; margin-left: 15px; }
+        .separator { height: 1px; background: #555; margin: 3px 0; }
+
+        /* --- Layout --- */
+        .main-window { display: flex; flex: 1; overflow: hidden; height: 100%; }
+        .col-left { width: 260px; display: flex; flex-direction: column; border-right: 2px solid #111; background: var(--bg-panel); }
+        .col-center { flex: 1; display: flex; flex-direction: column; background: #1e1e1e; min-width: 0; }
+        .col-right { width: 310px; display: flex; flex-direction: column; border-left: 2px solid #111; background: var(--bg-panel); }
+
+        /* --- Panels --- */
+        .panel { display: flex; flex-direction: column; border-bottom: 2px solid #111; position: relative; }
+        .panel-header {
+            background-color: var(--bg-header);
+            padding: 3px 6px;
+            font-weight: 600;
+            font-size: 11px;
+            color: #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #252525;
+            flex-shrink: 0;
+            height: 24px;
+        }
+        .panel-content { flex: 1; overflow-y: auto; overflow-x: hidden; position: relative; }
+
+        /* --- Area 1: StyleSheets --- */
+        #panel-stylesheets { height: 140px; flex-shrink: 0; }
+        .style-item { 
+            padding: 2px 0 2px 18px; 
+            color: #ccc; 
+            font-size: 11px;
+            white-space: nowrap; 
+        }
+        .style-item:hover { background-color: #353535; }
+        .selector-pseudo { color: #a4d17d; } /* Green for :hover */
+
+        /* --- Area 2: Hierarchy --- */
+        #panel-hierarchy { flex: 1; background: #282828; }
+        .tree-node { 
+            display: flex; align-items: center; 
+            padding: 2px 0; color: #ccc; font-size: 11px; 
+        }
+        .tree-node:hover { background-color: #333; }
+        .tree-node.selected { background-color: var(--bg-selection); color: #fff; }
+        .indent { width: 14px; height: 100%; display: inline-block; }
+        .tree-arrow { 
+            width: 12px; text-align: center; font-size: 8px; color: #888; 
+            display: inline-block; margin-right: 2px;
+        }
+        .node-icon { 
+            width: 12px; height: 12px; margin-right: 4px; background-size: contain; 
+            background-repeat: no-repeat; opacity: 0.8;
+        }
+        /* CSS Shapes for icons */
+        .icon-ve { background: #888; mask: url('data:image/svg+xml;utf8,<svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"><rect width="10" height="10"/></svg>'); -webkit-mask: url('data:image/svg+xml;utf8,<svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"><rect width="10" height="10"/></svg>'); }
+        .icon-btn { background: #60c163; mask: url('data:image/svg+xml;utf8,<svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"><rect width="10" height="6" y="2"/></svg>'); -webkit-mask: url('data:image/svg+xml;utf8,<svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"><rect width="10" height="6" y="2"/></svg>'); }
+        
+        /* --- Area 3: Library --- */
+        #panel-library { height: 220px; border-bottom: none; flex-shrink: 0; }
+        .lib-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; padding: 8px; }
+        .lib-item { 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            height: 50px; background: #383838; font-size: 10px; margin: 1px; color: #bbb;
+        }
+        .lib-item:hover { background: #454545; }
+        .lib-icon-box { width: 20px; height: 20px; background: #777; margin-bottom: 4px; }
+
+        /* --- Area 4: Viewport (Clean Canvas) --- */
+        #viewport {
+            flex: 1;
+            background-color: #1a1a1a;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            /* Unity Transparency Grid */
+            background-image:
+                linear-gradient(45deg, #222 25%, transparent 25%),
+                linear-gradient(-45deg, #222 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #222 75%),
+                linear-gradient(-45deg, transparent 75%, #222 75%);
+            background-size: 24px 24px;
+            background-position: 0 0, 0 12px, 12px -12px, -12px 0px;
+        }
+        .viewport-label { position: absolute; top: 4px; left: 8px; color: #666; font-size: 11px; }
+
+        /* The Device Screen */
+        .canvas-screen {
+            width: 375px; height: 667px;
+            background: #000;
+            border: 1px solid #000;
+            box-shadow: 0 0 40px rgba(0,0,0,0.5);
+            display: flex; flex-direction: column; justify-content: flex-end; /* UI at bottom */
+            padding-bottom: 80px; align-items: center; gap: 15px;
+        }
+
+        /* Unity UI Elements on Canvas */
+        .u-btn {
+            width: 220px; height: 50px;
+            background-color: #333;
+            border: 2px solid #666;
+            color: white;
+            font-size: 24px; font-family: 'Arial Narrow', sans-serif;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .u-btn.selected {
+            outline: 2px solid #e58e00; /* Unity orange selection */
+            outline-offset: -1px;
+        }
+
+        /* --- Area 5: Code Preview --- */
+        #panel-code { height: 180px; background: #1e1e1e; border-top: 2px solid #111; display: flex; flex-shrink: 0; }
+        .code-split { width: 50%; display: flex; flex-direction: column; border-right: 1px solid #222; }
+        .code-content { 
+            flex: 1; padding: 6px; 
+            color: #d4d4d4; background: #1e1e1e;
+            font-family: var(--font-code); font-size: 12px; line-height: 16px;
+            white-space: pre; overflow: auto; /* Forces scrollbar */
+        }
+        /* Syntax Highlight */
+        .tok-tag { color: #569cd6; } 
+        .tok-attr { color: #9cdcfe; } 
+        .tok-val { color: #ce9178; } 
+        .tok-sel { color: #d7ba7d; }
+        .tok-prop { color: #9cdcfe; }
+
+        /* --- Area 6: Inspector (Complex) --- */
+        .inspector-body { padding-bottom: 20px; }
+        
+        /* Common Form Elements */
+        .row { display: flex; align-items: center; margin-bottom: 2px; padding: 1px 12px; }
+        .row-label { width: 110px; color: var(--text-muted); font-size: 11px; flex-shrink: 0; }
+        .row-input { flex: 1; }
+        
+        input[type="text"], input[type="number"], select {
+            background: var(--bg-input);
+            border: 1px solid var(--border-input);
+            color: #ddd;
+            font-family: var(--font-main);
+            font-size: 11px;
+            padding: 2px 4px;
+            width: 100%;
+            height: 18px;
+            border-radius: 2px;
+        }
+        input:focus, select:focus, textarea:focus { 
+            border-color: var(--border-focus); outline: none; 
+        }
+        
+        /* Custom Checkbox */
+        .u-checkbox { 
+            width: 14px; height: 14px; background: #2a2a2a; border: 1px solid #222; 
+            margin-right: 6px; display: inline-block; vertical-align: middle;
+        }
+        
+        /* Foldout System */
+        .foldout { display: flex; flex-direction: column; border-bottom: 1px solid #222; }
+        .foldout-header {
+            background: #3e3e3e;
+            height: 20px;
+            display: flex; align-items: center;
+            padding-left: 2px;
+            cursor: pointer;
+            border-top: 1px solid #454545;
+            border-bottom: 1px solid #222;
+            color: #ccc; font-weight: bold; font-size: 11px;
+        }
+        .foldout-header:hover { background: #444; }
+        .arrow { 
+            width: 16px; text-align: center; font-size: 9px; color: #aaa; 
+            transform: rotate(-90deg); transition: transform 0.1s; 
+        }
+        .foldout.open > .foldout-header > .arrow { transform: rotate(0deg); }
+        .foldout-content { display: none; background: var(--bg-panel); padding: 4px 0; }
+        .foldout.open > .foldout-content { display: block; }
+        
+        /* Nested Sub-Foldout */
+        .sub-foldout > .foldout-header {
+            background: #333; /* Darker than main header */
+            padding-left: 14px;
+            border-top: 1px solid #3a3a3a;
+            font-weight: normal;
+        }
+        .sub-foldout .foldout-content { padding-left: 0; background: #2b2b2b; }
+        
+        /* Specific Grid layouts for Inspector */
+        .grid-4 { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding: 0 12px; margin-bottom: 4px; }
+        .grid-item { display: flex; align-items: center; }
+        .grid-label { width: 35px; color: #888; font-size: 10px; }
+        
+        /* Toggle Group (Align Icons) */
+        .toggle-group { display: flex; padding: 0 12px; margin-bottom: 6px; gap: 1px; }
+        .toggle-btn {
+            flex: 1; height: 20px; background: #383838; border: 1px solid transparent;
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+            color: #ccc; font-size: 10px;
+        }
+        .toggle-btn:hover { background: #444; }
+        .toggle-btn.active { background: #505050; border: 1px solid #666; }
+
+        /* Full width button */
+        .btn-block {
+            margin: 4px 12px; width: calc(100% - 24px);
+            background: #383838; border: 1px solid #222; color: #ccc;
+            padding: 4px; font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="toolbar">
+        <div style="font-weight: 700; margin-right: 12px; margin-left: 5px;">UI Builder</div>
+        
+        <div class="menu-item" onclick="toggleMenu('file', event)">File
+            <div id="menu-file" class="dropdown">
+                <div class="dropdown-item">New <span class="shortcut">Ctrl+N</span></div>
+                <div class="dropdown-item">Open... <span class="shortcut">Ctrl+O</span></div>
+                <div class="separator"></div>
+                <div class="dropdown-item">Save <span class="shortcut">Ctrl+S</span></div>
+                <div class="dropdown-item">Exit</div>
+            </div>
+        </div>
+        <div class="menu-item" onclick="toggleMenu('edit', event)">Edit
+            <div id="menu-edit" class="dropdown">
+                <div class="dropdown-item">Undo <span class="shortcut">Ctrl+Z</span></div>
+                <div class="dropdown-item">Redo <span class="shortcut">Ctrl+Y</span></div>
+            </div>
+        </div>
+        <div class="menu-item">View</div>
+        <div class="menu-item">Window</div>
+        <div class="menu-item">Help</div>
+
+        <div style="margin-left: auto; display: flex; align-items: center;">
+            <span style="color: #888; font-size: 10px; margin-right: 8px;">Default Theme</span>
+            <button style="background: #333; border: 1px solid #222; color: #ccc; padding: 2px 8px; font-size: 10px;">Preview</button>
+        </div>
+    </div>
+
+    <div class="main-window">
+        <div class="col-left">
+            <div class="panel" id="panel-stylesheets">
+                <div class="panel-header"><span>StyleSheets - MenuUSS.uss</span><span>+</span></div>
+                <div class="panel-content">
+                    <div class="style-item">.menu-button</div>
+                    <div class="style-item">.menu-title</div>
+                    <div class="style-item">.menu-window</div>
+                    <div class="style-item">.screen</div>
+                    <div class="style-item">.menu-column</div>
+                    <div class="style-item">.title-image</div>
+                    <div class="style-item selector-pseudo">.menu-button:hover</div>
+                    <div class="style-item">.unity-text-element</div>
+                    <div class="style-item">.unity-button</div>
+                    <div class="style-item">.scroll-view</div>
+                    <div class="style-item">.extra-selector-1</div>
+                    <div class="style-item">.extra-selector-2</div>
+                </div>
+            </div>
+
+            <div class="panel" id="panel-hierarchy">
+                <div class="panel-header">
+                    <span>Hierarchy</span>
+                    <span style="font-weight:normal; color:#888; font-size:9px;">1_MainMenuScreen.uxml</span>
+                </div>
+                <div class="panel-content" id="hierarchy-tree">
+                    </div>
+            </div>
+
+            <div class="panel" id="panel-library">
+                <div class="panel-header" style="justify-content: flex-start; gap: 10px;">
+                    <span>Library</span>
+                    <span style="background:#444; padding:1px 6px; border-radius:3px;">Standard</span>
+                    <span style="color:#666">Project</span>
+                </div>
+                <div class="panel-content">
+                    <div style="padding: 4px 8px; font-size:10px; color:#888; border-bottom:1px solid #333;">▼ Containers</div>
+                    <div class="lib-grid">
+                        <div class="lib-item"><div class="lib-icon-box" style="background:#555"></div>VisualElement</div>
+                        <div class="lib-item"><div class="lib-icon-box" style="background:#666"></div>ScrollView</div>
+                        <div class="lib-item"><div class="lib-icon-box" style="background:#777"></div>ListView</div>
+                        <div class="lib-item"><div class="lib-icon-box" style="background:#444"></div>IMGUI</div>
+                    </div>
+                    <div style="padding: 4px 8px; font-size:10px; color:#888; border-bottom:1px solid #333;">▼ Controls</div>
+                    <div class="lib-grid">
+                        <div class="lib-item"><div class="lib-icon-box" style="background:#999; mask:none;">T</div>Label</div>
+                        <div class="lib-item"><div class="lib-icon-box" style="background:#60c163; mask:none;"></div>Button</div>
+                        <div class="lib-item"><div class="lib-icon-box" style="background:#444;border:1px solid #777"></div>Toggle</div>
+                        <div class="lib-item"><div class="lib-icon-box" style="background:#555"></div>Scroller</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-center">
+            <div id="viewport">
+                <div class="viewport-label">Viewport - UI Builder 1.0.0-preview.11</div>
+                <div class="canvas-screen">
+                    <div class="u-btn selected" id="canvas-start" style="background-color:rgba(0,40,50,0.9); margin-bottom: 5px;">START</div>
+                    <div class="u-btn" id="canvas-exit" style="background-color:black;">EXIT</div>
+                </div>
+            </div>
+
+            <div id="panel-code">
+                <div class="code-split">
+                    <div class="panel-header">UXML Preview - 1_MainMenuScreen.uxml</div>
+                    <div class="code-content" id="code-uxml">
+<span class="tok-tag">&lt;ui:UXML</span> <span class="tok-attr">xmlns:ui</span>=<span class="tok-val">"UnityEngine.UIElements"</span><span class="tok-tag">&gt;</span>
+  <span class="tok-tag">&lt;ui:VisualElement</span> <span class="tok-attr">name</span>=<span class="tok-val">"screen"</span> <span class="tok-attr">class</span>=<span class="tok-val">"screen"</span><span class="tok-tag">&gt;</span>
+    <span class="tok-tag">&lt;ui:VisualElement</span> <span class="tok-attr">name</span>=<span class="tok-val">"menu-column"</span><span class="tok-tag">&gt;</span>
+      <span class="tok-tag">&lt;ui:Button</span> <span class="tok-attr">text</span>=<span class="tok-val">"START"</span> <span class="tok-attr">name</span>=<span class="tok-val">"start-button"</span> <span class="tok-attr">class</span>=<span class="tok-val">"menu-button"</span> <span class="tok-tag">/&gt;</span>
+      <span class="tok-tag">&lt;ui:Button</span> <span class="tok-attr">text</span>=<span class="tok-val">"EXIT"</span> <span class="tok-attr">name</span>=<span class="tok-val">"exit-button"</span> <span class="tok-attr">class</span>=<span class="tok-val">"menu-button"</span> <span class="tok-tag">/&gt;</span>
+    <span class="tok-tag">&lt;/ui:VisualElement&gt;</span>
+  <span class="tok-tag">&lt;/ui:VisualElement&gt;</span>
+<span class="tok-tag">&lt;/ui:UXML&gt;</span>
+</div>
+                </div>
+                <div class="code-split" style="border-right:none;">
+                    <div class="panel-header">USS Preview - MenuUSS.uss</div>
+                    <div class="code-content" id="code-uss">
+<span class="tok-sel">.menu-button</span> {
+    <span class="tok-prop">padding-top</span>: <span class="tok-val">12px</span>;
+    <span class="tok-prop">padding-bottom</span>: <span class="tok-val">12px</span>;
+    <span class="tok-prop">font-size</span>: <span class="tok-val">31px</span>;
+    <span class="tok-prop">background-color</span>: <span class="tok-val">rgba(0, 0, 0, 0.6)</span>;
+    <span class="tok-prop">border-color</span>: <span class="tok-val">rgb(101, 101, 101)</span>;
+    <span class="tok-prop">border-width</span>: <span class="tok-val">2px</span>;
+    <span class="tok-prop">align-self</span>: <span class="tok-val">center</span>;
+    <span class="tok-prop">width</span>: <span class="tok-val">220px</span>;
+    <span class="tok-prop">margin-bottom</span>: <span class="tok-val">15px</span>;
+}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-right">
+            <div class="panel-header">Inspector</div>
+            <div class="panel-content inspector-body" id="inspector">
+                <div style="padding: 8px 0; border-bottom:1px solid #222;">
+                    <div class="row">
+                        <div class="row-label" style="font-weight:bold; color:#ddd;">▼ Button</div>
+                    </div>
+                    <div class="row">
+                        <div class="row-label">Name</div>
+                        <div class="row-input"><input type="text" value="start-button"></div>
+                    </div>
+                    <div class="row">
+                        <div class="row-label">View Data Key</div>
+                        <div class="row-input"><input type="text"></div>
+                    </div>
+                    <div class="row">
+                        <div class="row-label">Picking Mode</div>
+                        <div class="row-input">
+                            <select><option>Position</option><option>Ignore</option></select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="row-label">Tooltip</div>
+                        <div class="row-input"><input type="text"></div>
+                    </div>
+                    <div class="row">
+                        <div class="row-label">Usage Hints</div>
+                        <div class="row-input"><select><option>None</option></select></div>
+                    </div>
+                    <div class="row">
+                        <div class="row-label">Tab Index</div>
+                        <div class="row-input"><input type="number" value="0"></div>
+                    </div>
+                    <div class="row">
+                        <div class="row-label">Focusable</div>
+                        <div class="row-input"><span class="u-checkbox" style="background:#2c5d87; border-color:#3a72b0; position:relative;"><span style="position:absolute; color:white; font-size:10px; top:-2px; left:2px;">✓</span></span></div>
+                    </div>
+                    <div class="row">
+                        <div class="row-label">Binding Path</div>
+                        <div class="row-input"><input type="text"></div>
+                    </div>
+                    <div class="row">
+                        <div class="row-label">Text</div>
+                        <div class="row-input"><input type="text" value="START"></div>
+                    </div>
+                    <div class="row">
+                        <div class="row-label">Display Tooltip...</div>
+                        <div class="row-input"><span class="u-checkbox"></span></div>
+                    </div>
+                </div>
+
+                <div class="foldout">
+                    <div class="foldout-header" onclick="toggleF(this)">
+                        <span class="arrow">▼</span>&nbsp; StyleSheet
+                    </div>
+                    <div class="foldout-content">
+                        <div class="row"><div class="row-label" style="width:100%">Style Class List</div></div>
+                        <button class="btn-block">Add Style Class to List</button>
+                        <button class="btn-block" style="color:#aaa">Extract Inlined Styles to New Class</button>
+                        <div style="padding: 0 12px; margin-top:5px;">
+                            <span style="background:#444; border-radius:10px; padding:2px 8px; font-size:10px; border:1px solid #555;">.menu-button <span style="margin-left:5px; cursor:pointer">×</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="foldout">
+                    <div class="foldout-header" onclick="toggleF(this)">
+                        <span class="arrow">▼</span>&nbsp; Matching Selectors
+                    </div>
+                </div>
+
+                <div class="foldout open">
+                    <div class="foldout-header" onclick="toggleF(this)">
+                        <span class="arrow">▼</span>&nbsp; Inlined Styles
+                    </div>
+                    <div class="foldout-content">
+                        
+                        <div class="foldout sub-foldout open">
+                            <div class="foldout-header" onclick="toggleF(this)">
+                                <span class="arrow">▼</span>&nbsp; Display
+                            </div>
+                            <div class="foldout-content">
+                                <div class="row">
+                                    <div class="row-label">Opacity</div>
+                                    <div class="row-input"><input type="number" value="1"></div>
+                                </div>
+                                <div class="row">
+                                    <div class="row-label">Display</div>
+                                    <div class="row-input"><select><option>Flex</option></select></div>
+                                </div>
+                                <div class="row">
+                                    <div class="row-label">Visibility</div>
+                                    <div class="row-input"><select><option>Visible</option></select></div>
+                                </div>
+                                <div class="row">
+                                    <div class="row-label">Overflow</div>
+                                    <div class="row-input"><select><option>Visible</option></select></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="foldout sub-foldout open">
+                            <div class="foldout-header" onclick="toggleF(this)">
+                                <span class="arrow">▼</span>&nbsp; Position
+                            </div>
+                            <div class="foldout-content">
+                                <div class="row">
+                                    <div class="row-label">Position</div>
+                                    <div class="row-input"><select><option>Relative</option><option>Absolute</option></select></div>
+                                </div>
+                                <div class="grid-4">
+                                    <div class="grid-item"><div class="grid-label">Left</div><input type="text" placeholder="auto"></div>
+                                    <div class="grid-item"><div class="grid-label">Top</div><input type="text" placeholder="auto"></div>
+                                    <div class="grid-item"><div class="grid-label">Right</div><input type="text" placeholder="auto"></div>
+                                    <div class="grid-item"><div class="grid-label">Bottom</div><input type="text" placeholder="auto"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="foldout sub-foldout open">
+                            <div class="foldout-header" onclick="toggleF(this)">
+                                <span class="arrow">▼</span>&nbsp; Flex
+                            </div>
+                            <div class="foldout-content">
+                                <div class="row">
+                                    <div class="row-label">Direction</div>
+                                    <div class="row-input"><select><option>Column</option></select></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="foldout sub-foldout open">
+                            <div class="foldout-header" onclick="toggleF(this)">
+                                <span class="arrow">▼</span>&nbsp; Align
+                            </div>
+                            <div class="foldout-content">
+                                <div class="row"><div class="row-label" style="width:100%">Align Items</div></div>
+                                <div class="toggle-group">
+                                    <div class="toggle-btn">Auto</div>
+                                    <div class="toggle-btn">FlexS</div>
+                                    <div class="toggle-btn active">Center</div>
+                                    <div class="toggle-btn">FlexE</div>
+                                    <div class="toggle-btn">Str</div>
+                                </div>
+                                <div class="row"><div class="row-label" style="width:100%">Justify Content</div></div>
+                                <div class="toggle-group">
+                                    <div class="toggle-btn">FlexS</div>
+                                    <div class="toggle-btn active">Center</div>
+                                    <div class="toggle-btn">FlexE</div>
+                                    <div class="toggle-btn">SpaceB</div>
+                                    <div class="toggle-btn">SpaceA</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="foldout sub-foldout">
+                            <div class="foldout-header" onclick="toggleF(this)">
+                                <span class="arrow">▼</span>&nbsp; Size
+                            </div>
+                            <div class="foldout-content">
+                                <div class="grid-4">
+                                    <div class="grid-item"><div class="grid-label">Width</div><input type="text" placeholder="auto"></div>
+                                    <div class="grid-item"><div class="grid-label">Height</div><input type="text" placeholder="auto"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="foldout sub-foldout open">
+                            <div class="foldout-header" onclick="toggleF(this)">
+                                <span class="arrow">▼</span>&nbsp; Text
+                            </div>
+                            <div class="foldout-content">
+                                <div class="row">
+                                    <div class="row-label">Font</div>
+                                    <div class="row-input" style="border:1px solid #222; background:#2a2a2a; display:flex; align-items:center; padding-left:4px;">
+                                        <span style="font-size:10px;">Aa</span>&nbsp; Teko-Regular
+                                        <span style="margin-left:auto; font-size:9px; padding-right:4px;">⦿</span>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="row-label">Font Style</div>
+                                    <div class="row-input" style="display:flex; gap:2px;">
+                                        <button style="width:20px; font-weight:bold; background:#555;">B</button>
+                                        <button style="width:20px; font-style:italic; background:#383838; border:1px solid transparent;">I</button>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="row-label">Size</div>
+                                    <div class="row-input" style="display:flex;">
+                                        <input type="number" value="31" style="width:50px; margin-right:4px;">
+                                        <div style="font-size:10px; color:#888; display:flex; align-items:center;">px</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div> </div> </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Logic ---
+        
+        // 1. Foldout Logic (Event Propagation Fixed)
+        function toggleF(header) {
+            // event is implicit in inline onclick, but we use strict handling here
+            const event = window.event;
+            if(event) event.stopPropagation();
+            
+            const parent = header.parentElement;
+            parent.classList.toggle('open');
+        }
+
+        // 2. Menu Logic
+        function toggleMenu(id, e) {
+            if(e) e.stopPropagation();
+            // Close others
+            document.querySelectorAll('.dropdown').forEach(d => {
+                if(d.id !== 'menu-'+id) d.classList.remove('show');
+            });
+            const menu = document.getElementById('menu-'+id);
+            if(menu) menu.classList.toggle('show');
+        }
+        
+        // Close menus on click outside
+        document.body.addEventListener('click', () => {
+            document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('show'));
+        });
+
+        // 3. Hierarchy Tree Rendering
+        const treeData = [
+            { name: "1_MainMenuScreen.uxml", type: "root", children: [
+                { name: "screen", type: "ve", children: [
+                    { name: "menu-column", type: "ve", children: [
+                         { name: "menu", type: "ve", children: [
+                             { name: "menu-title-image", type: "ve" },
+                             { name: "start-button", type: "btn", selected: true },
+                             { name: "exit-button", type: "btn" }
+                         ]}
+                    ]}
+                ]}
+            ]}
+        ];
+
+        function renderTree(nodes, container, depth=0) {
+            nodes.forEach(node => {
+                const el = document.createElement('div');
+                el.className = `tree-node ${node.selected ? 'selected' : ''}`;
+                
+                // Indentation
+                let indentHtml = '';
+                for(let i=0; i<depth; i++) indentHtml += '<span class="indent"></span>';
+                
+                const arrow = (node.children) ? '▼' : '&nbsp;';
+                const iconClass = node.type === 'btn' ? 'icon-btn' : 'icon-ve';
+                
+                el.innerHTML = `${indentHtml}<span class="indent"><span class="tree-arrow">${arrow}</span></span>
+                                <div class="node-icon ${iconClass}"></div>
+                                <span>#${node.name}</span>`;
+                                
+                container.appendChild(el);
+                
+                if(node.children) renderTree(node.children, container, depth+1);
+            });
+        }
+
+        const treeContainer = document.getElementById('hierarchy-tree');
+        renderTree(treeData[0].children, treeContainer);
+
+    </script>
+</body>
+</html>

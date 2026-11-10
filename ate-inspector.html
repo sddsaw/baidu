@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unity Foldout Inspector - Modern Pro Layout</title>
+  <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: #121212;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      padding: 24px;
+    }
+
+    /* 现代 Unity 风格面板：宽度 380px，高度舒展透气 */
+    .unity-inspector-panel {
+      width: 380px;
+      background-color: #242424;
+      border: 1px solid #333333;
+      border-radius: 6px;
+      color: #cccccc;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* 顶部标题条：高度 38px */
+    .unity-title-bar {
+      height: 38px;
+      background-color: #1a1a1a;
+      border-bottom: 1px solid #2f2f2f;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+    }
+    .title-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .title-icon {
+      font-size: 16px;
+      color: #3884ff;
+    }
+    .title-right {
+      display: flex;
+      gap: 4px;
+    }
+    .icon-btn {
+      background: transparent;
+      border: none;
+      color: #888888;
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+    }
+    .icon-btn:hover {
+      background: #333333;
+      color: #ffffff;
+    }
+    .icon-btn.active {
+      color: #3884ff;
+    }
+
+    /* 对象信息栏 */
+    .object-banner {
+      padding: 8px 12px;
+      background: linear-gradient(180deg, #2a2a2a 0%, #242424 100%);
+      border-bottom: 1px solid #303030;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .object-badge {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #3884ff;
+      background: rgba(56, 132, 255, 0.12);
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+    .object-name {
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    /* 树容器 */
+    .foldout-tree-container {
+      flex: 1;
+      background-color: #242424;
+    }
+
+    /* 折叠项 */
+    .unity-foldout-item {
+      width: 100%;
+    }
+
+    /* 一级折叠栏 Header：高度 36px 舒展大气 */
+    .unity-foldout-item.level-1 > .foldout-header {
+      height: 36px;
+      background-color: #2e2e2e;
+      border-top: 1px solid #383838;
+      border-bottom: 1px solid #1c1c1c;
+      padding: 0 12px;
+    }
+    .unity-foldout-item.level-1 > .foldout-header:hover {
+      background-color: #353535;
+    }
+
+    /* 二级折叠栏 Header：高度 30px，缩进 24px */
+    .unity-foldout-item.level-2 > .foldout-header {
+      height: 30px;
+      background-color: #272727;
+      border-bottom: 1px solid #202020;
+      padding-left: 24px;
+      padding-right: 12px;
+    }
+    .unity-foldout-item.level-2 > .foldout-header:hover {
+      background-color: #303030;
+    }
+
+    .foldout-header {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+    }
+
+    /* 截图实心小三角 (▶ / ▼) */
+    .foldout-arrow {
+      display: inline-block;
+      width: 0;
+      height: 0;
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+      border-left: 7px solid #999999; /* 未展开实心向右 ▶ */
+      margin-right: 10px;
+      flex-shrink: 0;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-left-color 0.15s;
+    }
+
+    /* 展开态：平滑旋转 90 度变成向下箭头 ▼ */
+    .foldout-arrow.expanded {
+      transform: rotate(90deg);
+      border-left-color: #ffffff;
+    }
+
+    .unity-foldout-item.level-1 > .foldout-header .foldout-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #eeeeee;
+      flex: 1;
+    }
+    .unity-foldout-item.level-2 > .foldout-header .foldout-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: #cccccc;
+      flex: 1;
+    }
+
+    .header-extra {
+      font-size: 11px;
+      color: #888888;
+      font-family: monospace;
+    }
+    .header-tag {
+      font-size: 10px;
+      font-weight: 700;
+      background: rgba(76, 175, 80, 0.15);
+      color: #4caf50;
+      border: 1px solid rgba(76, 175, 80, 0.3);
+      padding: 1px 6px;
+      border-radius: 10px;
+    }
+    .count-tag {
+      font-size: 11px;
+      font-weight: 700;
+      font-family: monospace;
+    }
+
+    /* 折叠内容区 */
+    .foldout-content {
+      display: none;
+      background-color: #212121;
+    }
+    .foldout-content.show {
+      display: block;
+    }
+
+    /* 表单组 */
+    .prop-form-group {
+      padding: 10px 14px 12px;
+    }
+    .prop-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 9px;
+    }
+    .prop-row:last-child {
+      margin-bottom: 0;
+    }
+    .prop-key {
+      width: 38%;
+      font-size: 12px;
+      color: #999999;
+    }
+    .prop-val {
+      width: 62%;
+    }
+    .u-input {
+      width: 100%;
+      height: 26px;
+      background: #171717;
+      border: 1px solid #333333;
+      border-radius: 3px;
+      color: #fff;
+      font-size: 11px;
+      padding: 0 8px;
+      outline: none;
+      transition: border 0.15s;
+    }
+    .u-input:focus {
+      border-color: #3884ff;
+    }
+
+    /* 二级展开细节框 */
+    .sub-detail-box {
+      padding: 8px 14px 10px 42px;
+      background: #1d1d1d;
+      border-bottom: 1px solid #171717;
+    }
+    .detail-line {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #888888;
+      margin-bottom: 5px;
+    }
+    .detail-line:last-child {
+      margin-bottom: 0;
+    }
+
+    /* 校验结果 */
+    .validation-box {
+      padding: 10px 14px;
+    }
+    .val-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #d0d0d0;
+      padding: 5px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .val-row:last-child {
+      border-bottom: none;
+    }
+
+    /* 空状态卡片 */
+    .empty-state-card {
+      margin: 10px 14px;
+      padding: 16px 12px;
+      background: rgba(26, 26, 26, 0.7);
+      border: 1px dashed #3a3a3a;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .empty-state-card:hover {
+      border-color: #3884ff;
+      background: rgba(56, 132, 255, 0.04);
+    }
+    .empty-icon {
+      font-size: 26px;
+      color: #666666;
+      margin-bottom: 6px;
+      transition: transform 0.2s, color 0.2s;
+    }
+    .empty-state-card:hover .empty-icon {
+      color: #3884ff;
+      transform: scale(1.1);
+    }
+    .empty-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: #dddddd;
+    }
+    .empty-desc {
+      font-size: 10px;
+      color: #777777;
+      margin-top: 2px;
+    }
+    .empty-btn {
+      margin-top: 8px;
+      background: transparent;
+      border: none;
+      color: #3884ff;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    /* 底部栏：高度 40px */
+    .unity-footer {
+      height: 40px;
+      background: #1a1a1a;
+      border-top: 1px solid #2e2e2e;
+      padding: 0 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: #888888;
+    }
+    .status-pulse {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #4caf50;
+      box-shadow: 0 0 6px #4caf50;
+      display: inline-block;
+      margin-right: 5px;
+    }
+    .apply-btn {
+      background: #2c5d88;
+      border: none;
+      color: #fff;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .apply-btn:hover {
+      background: #356f9e;
+    }
+
+    .text-blue { color: #64b5f6; }
+    .text-amber { color: #ffb74d; }
+    .text-purple { color: #ba68c8; }
+    .text-green { color: #81c784; }
+    .text-white { color: #ffffff; }
+  </style>
+</head>
+<body>
+
+  <div class="unity-inspector-panel">
+
+    <!-- 1. 顶部标题栏 -->
+    <div class="unity-title-bar">
+      <div class="title-left">
+        <iconify-icon icon="mdi:tune-vertical" class="title-icon"></iconify-icon>
+        <span>Inspector</span>
+      </div>
+      <div class="title-right">
+        <button class="icon-btn active" title="Lock">
+          <iconify-icon icon="mdi:pin"></iconify-icon>
+        </button>
+        <button class="icon-btn" title="Options">
+          <iconify-icon icon="mdi:dots-vertical"></iconify-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- 2. 对象信息栏 -->
+    <div class="object-banner">
+      <span class="object-badge">ATE Object</span>
+      <span class="object-name">PINMAP CONFIG TABLE</span>
+    </div>
+
+    <!-- 3. 折叠树形列表 (透气舒展尺寸) -->
+    <div class="foldout-tree-container">
+
+      <!-- 一级项 1: Common Properties -->
+      <div class="unity-foldout-item level-1">
+        <div class="foldout-header" onclick="toggle(this)">
+          <span class="foldout-arrow expanded"></span>
+          <span class="foldout-label">Common Properties</span>
+        </div>
+        <div class="foldout-content show">
+          <div class="prop-form-group">
+            <div class="prop-row">
+              <span class="prop-key">Table Name</span>
+              <div class="prop-val"><input class="u-input" value="SOC_TOP_PINMAP_V1" /></div>
+            </div>
+            <div class="prop-row">
+              <span class="prop-key">DUT Socket</span>
+              <div class="prop-val"><input class="u-input" value="Socket_Site_01" /></div>
+            </div>
+            <div class="prop-row">
+              <span class="prop-key">Routing Mode</span>
+              <div class="prop-val"><input class="u-input" value="Direct 1:1 Tester Channel" disabled style="opacity:0.7;" /></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 一级项 2: Pin Statistics -->
+      <div class="unity-foldout-item level-1">
+        <div class="foldout-header" onclick="toggle(this)">
+          <span class="foldout-arrow expanded"></span>
+          <span class="foldout-label">Pin Statistics</span>
+          <span class="header-extra">128 Total</span>
+        </div>
+        <div class="foldout-content show">
+
+          <div class="unity-foldout-item level-2">
+            <div class="foldout-header" onclick="toggle(this)">
+              <span class="foldout-arrow"></span>
+              <span class="foldout-label">Digital I/O Channels</span>
+              <span class="count-tag text-blue">64</span>
+            </div>
+            <div class="foldout-content">
+              <div class="sub-detail-box">
+                <div class="detail-line"><span>Drive Voltage:</span><span class="text-white">1.8V ~ 3.3V</span></div>
+                <div class="detail-line"><span>Frequency:</span><span class="text-white">400 MHz</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="unity-foldout-item level-2">
+            <div class="foldout-header" onclick="toggle(this)">
+              <span class="foldout-arrow"></span>
+              <span class="foldout-label">Power & GND Supplies</span>
+              <span class="count-tag text-amber">56</span>
+            </div>
+            <div class="foldout-content">
+              <div class="sub-detail-box">
+                <div class="detail-line"><span>DPS Channels:</span><span class="text-white">24</span></div>
+                <div class="detail-line"><span>GND Pins:</span><span class="text-white">32</span></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 一级项 3: Inlined Styles & Rules (截图同款) -->
+      <div class="unity-foldout-item level-1">
+        <div class="foldout-header" onclick="toggle(this)">
+          <span class="foldout-arrow expanded"></span>
+          <span class="foldout-label">Inlined Styles & Geometry</span>
+        </div>
+        <div class="foldout-content show">
+
+          <div class="unity-foldout-item level-2">
+            <div class="foldout-header" onclick="toggle(this)">
+              <span class="foldout-arrow"></span>
+              <span class="foldout-label">Display & Opacity</span>
+            </div>
+            <div class="foldout-content">
+              <div class="sub-detail-box">
+                <div class="detail-line"><span>Opacity:</span><span class="text-white">100%</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="unity-foldout-item level-2">
+            <div class="foldout-header" onclick="toggle(this)">
+              <span class="foldout-arrow"></span>
+              <span class="foldout-label">Position Mode</span>
+            </div>
+            <div class="foldout-content">
+              <div class="sub-detail-box">
+                <div class="detail-line"><span>Mode:</span><span class="text-white">Relative</span></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 一级项 4: Validation Results -->
+      <div class="unity-foldout-item level-1">
+        <div class="foldout-header" onclick="toggle(this)">
+          <span class="foldout-arrow expanded"></span>
+          <span class="foldout-label">Validation Results</span>
+          <span class="header-tag">PASSED</span>
+        </div>
+        <div class="foldout-content show">
+          <div class="validation-box">
+            <div class="val-row">
+              <iconify-icon icon="mdi:check-circle" class="text-green" style="font-size:16px;"></iconify-icon>
+              <span>All 128 tester channels mapped and routed</span>
+            </div>
+            <div class="val-row">
+              <iconify-icon icon="mdi:alert-circle" class="text-amber" style="font-size:16px;"></iconify-icon>
+              <span>CLK skew threshold check: Warning</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 一级项 5: Related Entities -->
+      <div class="unity-foldout-item level-1">
+        <div class="foldout-header" onclick="toggle(this)">
+          <span class="foldout-arrow expanded"></span>
+          <span class="foldout-label">Related Entities</span>
+        </div>
+        <div class="foldout-content show">
+          <div class="empty-state-card">
+            <iconify-icon icon="mdi:link-variant-off" class="empty-icon"></iconify-icon>
+            <div class="empty-title">No related entities attached</div>
+            <div class="empty-desc">Click here to associate Timing or Pattern sets</div>
+            <button class="empty-btn">+ Link External Asset</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 4. 底部栏 -->
+    <div class="unity-footer">
+      <div>
+        <span class="status-pulse"></span>
+        <span>Ready</span>
+      </div>
+      <button class="apply-btn">Apply Changes</button>
+    </div>
+
+  </div>
+
+  <script>
+    function toggle(header) {
+      const arrow = header.querySelector('.foldout-arrow');
+      const content = header.nextElementSibling;
+      if (arrow && content) {
+        arrow.classList.toggle('expanded');
+        content.classList.toggle('show');
+      }
+    }
+  </script>
+</body>
+</html>
