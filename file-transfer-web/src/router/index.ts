@@ -96,6 +96,16 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/timesetbasic',
+    name: 'TimesetBasic',
+    component: () => import('@/views/timesetbasic.vue'),
+    meta: {
+      title: 'Timeset Basic',
+      icon: 'SetUp',
+      desc: 'Timeset Basic'
+    }
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/transfer'
   }

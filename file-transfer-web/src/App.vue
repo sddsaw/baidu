@@ -39,6 +39,9 @@
           <el-radio-button value="/circuit-flow">
             <el-icon style="margin-right: 4px"><Share /></el-icon> VI 电路拓扑
           </el-radio-button>
+          <el-radio-button value="/timesetbasic">
+            <el-icon style="margin-right: 4px"><SetUp /></el-icon> Timeset Basic
+          </el-radio-button>
         </el-radio-group>
       </div>
 
@@ -66,7 +69,8 @@
         'maintenance-main': route.path === '/maintenance',
         'waveform-main': route.path === '/waveform',
         'proxima-main': route.path === '/proxima',
-        'cluster-main': route.path === '/cluster'
+        'cluster-main': route.path === '/cluster',
+        'timeset-main': route.path === '/timesetbasic'
       }"
     >
       <router-view v-slot="{ Component }">
@@ -109,6 +113,7 @@ const activeNav = computed(() => {
   if (route.path === '/maintenance') return '/maintenance'
   if (route.path === '/waveform') return '/waveform'
   if (route.path === '/circuit-flow') return '/circuit-flow'
+  if (route.path === '/timesetbasic') return '/timesetbasic'
   return '/transfer'
 })
 
@@ -266,6 +271,40 @@ const toggleFullscreen = () => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.timeset-main {
+  max-width: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+}
+
+.app-layout:has(.timeset-main) .app-header {
+  flex-wrap: wrap;
+  height: auto;
+  min-height: 64px;
+  gap: 12px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.app-layout:has(.timeset-main) .header-center {
+  order: 3;
+  width: 100%;
+  overflow-x: auto;
+}
+
+.app-layout:has(.timeset-main) .header-center .el-radio-group {
+  flex-wrap: nowrap;
+}
+
+@media (max-width: 600px) {
+  .app-layout:has(.timeset-main) .app-header { padding: 10px 16px; }
+  .app-layout:has(.timeset-main) .header-title { font-size: 14px; }
+  .app-layout:has(.timeset-main) .brand-text .el-tag,
+  .app-layout:has(.timeset-main) .header-right { display: none; }
 }
 
 /* 路由转场过渡动效 */
