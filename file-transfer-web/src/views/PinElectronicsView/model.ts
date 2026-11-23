@@ -43,13 +43,12 @@ export const edgeDisableKeys = {
   d0: 'd0Disabled', d1: 'd1Disabled', d2: 'd2Disabled', d3: 'd3Disabled',
   r0: 'r0Disabled', r1: 'r1Disabled',
 } as const
-export type EdgeKey = keyof typeof edgeDisableKeys
 
+export type EdgeKey = keyof typeof edgeDisableKeys
 export type SelectKey = keyof typeof selectFields
 export type NumberKey = keyof typeof numberFields
 export type Settings = { [K in SelectKey]: (typeof selectFields)[K]['options'][number] }
   & Record<NumberKey, number> & Record<keyof typeof booleanDefaults, boolean>
-export type FieldKey = SelectKey | NumberKey
 export type SettingKey = keyof Settings
 export type SettingValue = Settings[SettingKey]
 export type DialogKind = 'ppmu' | 'counter'
@@ -58,6 +57,19 @@ export const channels: Record<Settings['pinName'], string> = {
   portb: '15.k302 (15.ch170)', porta: '15.k301 (15.ch169)',
   portc: '15.k303 (15.ch171)', portd: '15.k304 (15.ch172)',
 }
+
+export interface LevelPreset {
+  id: string
+  label: string
+  patch: Partial<Settings>
+}
+
+export const levelPresets: LevelPreset[] = [
+  { id: 'lvcmos18', label: 'LVCMOS 1.8V', patch: { vih: 1.8, vil: 0, voh: 1.26, vol: 0.54, vt: 0.9, vch: 2.5, vcl: -0.5 } },
+  { id: 'cmos33', label: 'CMOS 3.3V', patch: { vih: 3.3, vil: 0, voh: 2.4, vol: 0.8, vt: 1.65, vch: 4.2, vcl: -0.8 } },
+  { id: 'lvttl50', label: 'LVTTL 5.0V', patch: { vih: 4.95, vil: 400, voh: 4.0, vol: 1.0, vt: 1.5, vch: 6.0, vcl: -1.0 } },
+  { id: 'safe-hiz', label: 'Safe HiZ', patch: { driverMode: 'HiZ', mainRelayClosed: false, ppmuRelayClosed: false } },
+]
 
 export function createSettings(): Settings {
   return {
@@ -83,7 +95,14 @@ export function isEdgeDisabled(settings: Readonly<Settings>, edge: EdgeKey): boo
   return settings[edgeDisableKeys[edge]] || ((edge === 'r0' || edge === 'r1') && settings.disableCompare)
 }
 
-// Read only known fields; malformed values and obsolete fields never enter the UI or export.
+export function formatFrequency(periodNs: number): string {
+  if (!Number.isFinite(periodNs) || periodNs <= 0) return '—'
+  const mhz = 1000 / periodNs
+  if (mhz >= 1000) return `${(mhz / 1000).toFixed(2)} GHz`
+  if (mhz >= 1) return `${mhz.toFixed(2)} MHz`
+  return `${(mhz * 1000).toFixed(1)} kHz`
+}
+
 export function restoreSettings(saved: unknown): Settings {
   const result = createSettings()
   if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return result

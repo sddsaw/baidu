@@ -1,27 +1,30 @@
 import { computed, readonly, shallowRef } from 'vue'
-import { channels, createSettings, restoreSettings, validSetting, type Settings, type SettingKey, type SettingValue } from './model'
+import {
+  channels,
+  createSettings,
+  restoreSettings,
+  validSetting,
+  type LevelPreset,
+  type Settings,
+  type SettingKey,
+  type SettingValue,
+} from './model'
 
 const storageKey = 'file-transfer-pin-electronics-v1'
 
 export function usePinSettings() {
   const settings = shallowRef(createSettings())
-  const status = shallowRef('Ready · settings stored on this device')
-  const storageError = shallowRef(false)
   try {
     settings.value = restoreSettings(JSON.parse(localStorage.getItem(storageKey) || 'null'))
   } catch {
-    status.value = 'Saved settings unavailable · using defaults'
-    storageError.value = true
+    settings.value = createSettings()
   }
 
-  function save(message = 'Changes saved locally') {
+  function save() {
     try {
       localStorage.setItem(storageKey, JSON.stringify(settings.value))
-      status.value = message
-      storageError.value = false
     } catch {
-      status.value = 'Updated for this session · browser storage unavailable'
-      storageError.value = true
+      // Ignore storage quota / private mode errors
     }
   }
 
@@ -33,24 +36,48 @@ export function usePinSettings() {
 
   function apply(patch: Partial<Settings>) {
     settings.value = restoreSettings({ ...settings.value, ...patch })
-    save('Settings saved locally')
+    save()
+  }
+
+  function applyPreset(preset: LevelPreset) {
+    apply(preset.patch)
   }
 
   function reset() {
     settings.value = createSettings()
-    save('Default values restored')
+    save()
+  }
+
+  function buildPayload() {
+    return JSON.stringify({ version: 1, pin: settings.value.pinName, settings: settings.value }, null, 2)
   }
 
   function exportSettings() {
-    const blob = new Blob([JSON.stringify({ version: 1, pin: settings.value.pinName, settings: settings.value }, null, 2)], { type: 'application/json' })
+    const blob = new Blob([buildPayload()], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
     link.download = `pin-${settings.value.pinName}-settings.json`
     link.click()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
-    if (!storageError.value) status.value = 'Configuration exported'
   }
 
-  return { settings: readonly(settings), status, storageError, channel: computed(() => channels[settings.value.pinName]), update, apply, reset, exportSettings }
+  async function copySettings() {
+    try {
+      await navigator.clipboard.writeText(buildPayload())
+    } catch {
+      // Ignore clipboard errors
+    }
+  }
+
+  return {
+    settings: readonly(settings),
+    channel: computed(() => channels[settings.value.pinName]),
+    update,
+    apply,
+    applyPreset,
+    reset,
+    exportSettings,
+    copySettings,
+  }
 }
