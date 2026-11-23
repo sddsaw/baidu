@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { formatSchematic } from '../formatSchematic'
 import { compareMarks, driveEvents, driveMarks, isDDR, type Pin, type TimingEvent } from '../model'
 const props = defineProps<{
   pin: Pin; period: number; periods: number; mode: 'format' | 'data'
@@ -12,11 +13,7 @@ const x = (time: number) => props.x(time)
 const y = (value: number) => value ? 44 : 76
 function fmt(value: number) { return Number(value.toPrecision(7)).toString() }
 const marks = computed(() => compareMarks(props.pin, props.period, props.periods))
-const lanes = computed(() => {
-  const eventPin = props.mode === 'format' ? { ...props.pin, pattern: '1' } : props.pin
-  const events = driveEvents(eventPin, props.period, props.periods)
-  return props.mode === 'format' ? [events, driveEvents(eventPin, props.period, props.periods, true)] : [events]
-})
+const lanes = computed(() => [driveEvents(props.pin, props.period, props.periods)])
 function path(events: TimingEvent[], invert = false) {
   let value: number | null = props.mode === 'format' || props.pin.initial === 'X' ? null : Number(props.pin.initial)
   if (invert && value !== null) value = 1 - value
@@ -29,18 +26,8 @@ function path(events: TimingEvent[], invert = false) {
   if (value !== null) d += ` H ${x(total.value)}`
   return d
 }
-// Preserve the requested NR format envelope: one compact crossing centered at D1,
-// never at the D0/D1 midpoint, and open parallel tails across all later periods.
-const nr = computed(() => {
-  const start = x(0), end = x(total.value), mid = x(props.pin.a.d1)
-  const half = Math.max(0, Math.min(6, mid - start, end - mid))
-  const left = mid - half, right = mid + half, top = 48, bottom = 72
-  if (half === 0) return { lead: `M ${start} ${top} H ${mid} M ${start} ${bottom} H ${mid}`, solid: `M ${mid} ${top} H ${end} M ${mid} ${bottom} H ${end}` }
-  return {
-    lead: `M ${start} ${top} H ${left} L ${mid} 60 M ${start} ${bottom} H ${left} L ${mid} 60`,
-    solid: `M ${mid} 60 L ${right} ${bottom} H ${end} M ${mid} 60 L ${right} ${top} H ${end}`,
-  }
-})
+const schematic = computed(() => props.mode === 'format' && props.pin.operation === 'Drive' && !props.errors.length
+  ? formatSchematic(props.pin, props.period, props.periods, x) : null)
 const nrEnvelope = computed(() => props.pin.format === 'NR' && props.mode === 'format' && props.pin.operation === 'Drive')
 const driveLabels = computed(() => driveMarks(props.pin, props.period, props.periods)
   .filter(mark => !nrEnvelope.value || mark.key !== 'D1' || mark.cycle === 1))
@@ -65,7 +52,12 @@ const priorY = computed(() => props.mode === 'format' || props.pin.initial === '
         </template>
       </g>
       <template v-if="pin.operation === 'Drive'">
-        <g v-if="nrEnvelope"><path :d="nr.lead" class="prior-path"/><path :d="nr.solid" class="drive-path"/></g>
+        <g v-if="schematic">
+          <path :d="schematic.lead" class="prior-path"/>
+          <path :d="schematic.solid" class="drive-path"/>
+          <path v-if="schematic.alternative" :d="schematic.alternative" class="alternative-path"/>
+          <text v-if="schematic.note" :x="x(0) + 6" y="117" class="tick-label">{{ schematic.note }}</text>
+        </g>
         <template v-else>
           <path :d="`M ${x(0)} ${priorY} H ${x(priorEnd)}`" class="prior-path"/>
           <path v-for="(events, index) in lanes" :key="index" :d="path(events, index === 1)" :class="index === 0 ? 'drive-path' : 'alternative-path'"/>

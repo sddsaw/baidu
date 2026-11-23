@@ -4,12 +4,46 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import assert from 'node:assert/strict'
 import ts from 'typescript'
+import { createRequire } from 'node:module'
+import { parse, compileScript } from '@vue/compiler-sfc'
+import { createSSRApp, h } from 'vue'
+import { renderToString } from 'vue/server-renderer'
 const temp = await mkdtemp(join(tmpdir(), 'mio16-test-'))
 try {
   const source = await readFile(new URL('../src/views/Mio16TimingView/model.ts', import.meta.url), 'utf8')
   const code = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }).outputText
   await writeFile(join(temp, 'model.mjs'), code)
   const m = await import(pathToFileURL(join(temp, 'model.mjs')))
+  const schematicSource = await readFile(new URL('../src/views/Mio16TimingView/formatSchematic.ts', import.meta.url), 'utf8')
+  await writeFile(join(temp, 'formatSchematic.mjs'), ts.transpileModule(schematicSource, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 },
+  }).outputText)
+  const require = createRequire(import.meta.url)
+  const laneSource = await readFile(new URL('../src/views/Mio16TimingView/components/TimingLane.vue', import.meta.url), 'utf8')
+  const { descriptor } = parse(laneSource)
+  const laneScript = compileScript(descriptor, { id: 'timing-lane-test', inlineTemplate: true }).content
+    .replace(/from ['"]vue['"]/g, `from '${pathToFileURL(require.resolve('vue'))}'`)
+    .replace(/from ['"]\.\.\/model['"]/g, "from './model.mjs'")
+    .replace(/from ['"]\.\.\/formatSchematic['"]/g, "from './formatSchematic.mjs'")
+  await writeFile(join(temp, 'lane.mjs'), ts.transpileModule(laneScript, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }).outputText)
+  const { default: TimingLane } = await import(pathToFileURL(join(temp, 'lane.mjs')))
+  const renderLane = (pin, options = {}) => renderToString(createSSRApp({ render: () => h(TimingLane, {
+    pin, period: 100, periods: 2, mode: 'format', x: t => t, width: 200, selected: false, errors: [], ...options,
+  }) }))
+  const paths = (svg, classes) => [...svg.matchAll(/<path\b[^>]*>/g)].filter(([tag]) => classes.some(c => tag.includes(`class="${c}"`)))
+    .map(([tag]) => /\bd="([^"]*)"/.exec(tag)?.[1] ?? '')
+  const segments = data => data.flatMap(d => {
+    const result = []; let point = [0, 0]
+    for (const [, command, coords] of d.matchAll(/([MHLV])\s*([^MHLV]*)/g)) {
+      const numbers = coords.trim().split(/\s+/).map(Number)
+      const next = command === 'H' ? [numbers[0], point[1]] : command === 'V' ? [point[0], numbers[0]] : numbers
+      if (command !== 'M') result.push([point, next])
+      point = next
+    }
+    return result
+  })
+  const levelsAt = (lines, time) => [...new Set(lines.filter(([a, b]) => a[0] < time && time < b[0])
+    .map(([a, b]) => a[1] + (b[1] - a[1]) * (time - a[0]) / (b[0] - a[0])))].sort((a, b) => a - b)
   let count = 0
   const test = (name, fn) => { fn(); count++; console.log(`✓ ${name}`) }
   const config = m.createConfig()
@@ -83,5 +117,91 @@ try {
     assert.equal(migrated.b.d1, 71)
     assert.deepEqual(m.validatePin(migrated, 100, false), [])
   })
-  console.log(`\n${count} MIO16 rule tests passed.`)
+  for (const format of ['RH', 'RL']) {
+    const p = pin(format); p.a.d0 = 20; p.a.d1 = 50; p.a.d2 = 80
+    const svg = await renderLane(p)
+    test(`${format} format crosses at D1, merges at D2=80 and reopens next cycle`, () => {
+      const prior = segments(paths(svg, ['prior-path']))
+      const solid = segments(paths(svg, ['drive-path', 'alternative-path']))
+      const rest = format === 'RH' ? 48 : 72
+      assert.deepEqual(levelsAt(prior, 20), [48, 72], 'two dashed prior-state rails')
+      assert.ok(prior.some(([, b]) => b[0] === 50 && b[1] === 60), 'prior joins at D1')
+      assert.ok(solid.some(([a]) => a[0] === 50 && a[1] === 60), 'solid joins at D1')
+      for (const time of [60, 160]) assert.deepEqual(levelsAt(solid, time), [48, 72])
+      for (const time of [90, 100, 120, 190]) assert.deepEqual(levelsAt(solid, time), [rest])
+      for (const d2 of [80, 180]) {
+        const incoming = solid.filter(([a, b]) => a[0] < d2 && b[0] === d2 && b[1] === 60)
+        assert.deepEqual(incoming.map(([a]) => a[1]).sort((a, b) => a - b), [48, 72], 'both rails close at the D2 center')
+        assert.ok(solid.some(([a, b]) => a[0] === d2 && a[1] === 60 && b[0] > d2 && b[1] === rest), 'return rail starts at the closed tip')
+      }
+      assert.ok(svg.includes('data-edge="D2" data-time="80"'))
+      assert.ok(svg.includes('data-edge="D2" data-time="180"'))
+      assert.ok(solid.every(([a, b]) => b[0] >= a[0]), 'never draw backwards')
+    })
+  }
+  for (const format of ['RC', 'SBC', 'DDR_NR']) {
+    const p = pin(format)
+    const svg = await renderLane(p)
+    test(`${format} schematic exposes each data/complement update with a crossing`, () => {
+      const solid = segments(paths(svg, ['drive-path', 'alternative-path']))
+      const prior = segments(paths(svg, ['prior-path']))
+      assert.deepEqual(levelsAt(prior, 1), [48, 72])
+      const edges = format === 'DDR_NR' ? [12.5, 62.5, 112.5, 162.5]
+        : format === 'SBC' ? [10, 25, 65, 110, 125, 165] : [25, 65, 125, 165]
+      for (const time of edges) {
+        assert.equal(solid.filter(([a]) => a[0] === time && a[1] === 60).length, 2, `two outgoing branches at ${time}`)
+      }
+      assert.deepEqual(levelsAt(solid, 90), [48, 72], 'complement/non-return holds both possible states')
+      assert.deepEqual(levelsAt(solid, 195), [48, 72])
+      assert.ok(solid.every(([a, b]) => b[0] >= a[0]))
+    })
+  }
+  for (const format of ['2XCLK_POS', '2XCLK_NEG']) {
+    const svg = await renderLane(pin(format))
+    test(`${format} schematic shows four pulses, connected prior state and explicit state labels`, () => {
+      const pulse = segments(paths(svg, ['drive-path']))
+      const rest = format === '2XCLK_POS' ? 72 : 48
+      assert.deepEqual(levelsAt(segments(paths(svg, ['prior-path'])), 1), [48, 72])
+      for (const time of [12.5, 62.5, 112.5, 162.5]) {
+        assert.ok(pulse.some(([a, b]) => a[0] === time && b[0] === time && a[1] === rest && b[1] === 120 - rest))
+      }
+      assert.ok(svg.includes('1：双脉冲'))
+      assert.ok(svg.includes(format === '2XCLK_POS' ? '0：保持高' : '0：保持低'))
+    })
+  }
+  const { formatSchematic } = await import(pathToFileURL(join(temp, 'formatSchematic.mjs')))
+  test('Every schematic handles coincident edges, period boundaries and zoom without backwards paths', () => {
+    for (const format of m.formats) for (const factor of [.2, 1, 8]) {
+      for (const edgeCase of ['zero', 'end', 'narrow']) {
+        const p = pin(format)
+        for (const half of ['a', 'b']) {
+          const lo = m.isDDR(format) && half === 'b' ? 50 : 0
+          const hi = m.isDDR(format) && half === 'a' ? 50 : 100
+          const time = edgeCase === 'zero' ? lo : edgeCase === 'end' ? hi : lo + 10
+          p[half].d0 = lo; p[half].d1 = time; p[half].d2 = time + (edgeCase === 'narrow' ? .01 : 0)
+        }
+        if (m.isClock(format)) p.b.d0 = p.a.d0
+        const s = formatSchematic(p, 100, 3, t => 112 + t * factor)
+        for (const [a, b] of segments([s.lead, s.solid, s.alternative ?? ''])) {
+          assert.ok([...a, ...b].every(Number.isFinite), format)
+          assert.ok(b[0] + 1e-8 >= a[0], `${format} ${edgeCase} draws backwards`)
+          assert.ok(a[0] >= 112 - 1e-8 && b[0] <= 112 + 300 * factor + 1e-8, format)
+        }
+      }
+    }
+  })
+  const nrSvg = await renderLane(pin('NR'))
+  test('NR keeps open rails across periods, without additional D1 crossings or D2 markers', () => {
+    const solid = segments(paths(nrSvg, ['drive-path']))
+    assert.deepEqual(levelsAt(solid, 99), [48, 72])
+    assert.deepEqual(levelsAt(solid, 125), [48, 72])
+    assert.deepEqual(levelsAt(solid, 199), [48, 72])
+    assert.ok(!nrSvg.includes('data-edge="D2"'))
+  })
+  for (const format of m.formats) {
+    const p = pin(format), before = await renderLane(p)
+    const after = await renderLane({ ...p, initial: '0', pattern: '0001' })
+    test(`${format} schematic is independent of Pattern and initial data`, () => assert.deepEqual(paths(before, ['drive-path', 'alternative-path', 'prior-path']), paths(after, ['drive-path', 'alternative-path', 'prior-path'])))
+  }
+  console.log(`\n${count} MIO16 rule and rendering tests passed.`)
 } finally { await rm(temp, { recursive: true, force: true }) }
