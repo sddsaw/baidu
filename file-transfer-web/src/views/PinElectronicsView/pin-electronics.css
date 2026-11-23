@@ -1,0 +1,169 @@
+/* Local light palette: do not change the application's existing industrial theme. */
+.pe-page {
+  --el-color-primary: #245bd6;
+  --el-color-primary-light-3: #5b85ef;
+  --el-color-primary-light-5: #9fb8eb;
+  --el-color-primary-light-7: #c3d3f4;
+  --el-color-primary-light-8: #dbe6fb;
+  --el-color-primary-light-9: #edf3ff;
+  --el-color-primary-dark-2: #1948b3;
+  --el-bg-color: #fff;
+  --el-bg-color-page: #edf2f8;
+  --el-bg-color-overlay: #fff;
+  --el-fill-color-blank: #fff;
+  --el-fill-color: #edf3ff;
+  --el-fill-color-light: #f1f5fb;
+  --el-fill-color-lighter: #edf3ff;
+  --el-fill-color-extra-light: #f8fafd;
+  --el-text-color-primary: #15253d;
+  --el-text-color-regular: #41536b;
+  --el-text-color-secondary: #5d6f86;
+  --el-text-color-placeholder: #66778b;
+  --el-text-color-disabled: #66778b;
+  --el-border-color: #aebed3;
+  --el-border-color-light: #dbe4ef;
+  --el-border-color-lighter: #e6edf6;
+  --el-border-color-dark: #aebed3;
+  --el-disabled-bg-color: #e9eef5;
+  --el-disabled-text-color: #66778b;
+  --el-disabled-border-color: #dbe4ef;
+  --el-border-radius-base: 5px;
+  --el-component-size: 32px;
+  --el-font-size-base: 13px;
+  --el-font-size-small: 12px;
+  --el-box-shadow-light: 0 6px 24px #1d36521a;
+  color-scheme: light;
+  min-height: 100%;
+  background: var(--el-bg-color-page);
+  color: var(--el-text-color-primary);
+  font: 13px/1.5 Arial, Helvetica, sans-serif;
+  user-select: text;
+}
+.pe-workspace { max-width: 1130px; padding: 28px 28px 24px; margin: 0 auto; }
+.pe-page-header, .pe-identity { display: flex; align-items: center; }
+.pe-page-header { justify-content: space-between; margin-bottom: 24px; }
+.pe-identity { gap: 14px; }
+.pe-brand { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: #245bd6; color: #fff; }
+.pe-brand svg { width: 28px; height: 28px; }
+.pe-eyebrow { color: var(--el-text-color-secondary); font-size: 10px; letter-spacing: 1.8px; margin-bottom: 3px; }
+.pe-page-header h1 { font-size: 25px; font-weight: 600; line-height: 1.2; letter-spacing: -.5px; }
+.pe-workbench { border: 1px solid var(--el-border-color-light); border-top: 3px solid #245bd6; border-radius: 12px; background: #fff; box-shadow: 0 6px 30px #1d36520a; overflow: hidden; }
+.pe-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 22px; border-bottom: 1px solid var(--el-border-color-light); background: #f8fafd; color: #41536b; font-size: 10px; font-weight: 600; letter-spacing: 1px; }
+.pe-toolbar span:last-child { color: #5d6f86; font-weight: 400; }
+.pe-timing { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 20px; padding: 22px; }
+.pe-timeset { display: flex; flex-direction: column; gap: 18px; padding-top: 33px; }
+.pe-timeset .pe-field { grid-template-columns: 1fr; gap: 6px; }
+.pe-timeset .pe-field label { text-align: left; }
+.pe-format { padding: 16px; background: linear-gradient(110deg, #f1f6ff, #eaf2ff); border: 1px solid #d5e3fa; border-radius: 8px; }
+.pe-format h2, .pe-electronics h2 { color: #245bd6; font-size: 15px; font-weight: 600; margin-bottom: 14px; }
+.pe-format-header { display: grid; grid-template-columns: 1fr 1.1fr 1fr; align-items: center; gap: 14px; margin-bottom: 16px; }
+.pe-format-header .pe-field { grid-template-columns: auto minmax(64px, 1fr); }
+.pe-readout { color: #41536b; white-space: nowrap; font-size: 12px; }
+.pe-readout strong { margin-left: 6px; font-weight: 600; }
+.pe-format-header .el-checkbox { justify-self: end; margin: 0; }
+.pe-page .el-checkbox__label { font-size: 12px; padding-left: 6px; }
+.pe-format-columns { display: grid; grid-template-columns: 1fr 1.1fr 1.1fr; gap: 16px; }
+.pe-field-stack { display: flex; flex-direction: column; gap: 9px; }
+.pe-field { display: grid; grid-template-columns: 80px minmax(65px, 1fr); align-items: center; column-gap: 7px; min-width: 0; }
+.pe-field:has(.pe-unit) { grid-template-columns: 35px minmax(65px, 1fr) 20px; }
+.pe-field label { color: #41536b; font-size: 12px; text-align: right; white-space: nowrap; }
+.pe-unit { color: #5d6f86; font-size: 11px; }
+.pe-field .el-input-number, .pe-field .el-select, .pe-field .el-input { width: 100%; min-width: 0; }
+.pe-page .el-input__inner { font-size: 12px; font-variant-numeric: tabular-nums; }
+.pe-page .el-input-number .el-input__inner { text-align: right; }
+.pe-page .el-input-number .el-input__wrapper { padding-inline: 7px; }
+.pe-page .el-select__wrapper, .pe-page .el-input__wrapper { min-height: 28px; }
+.pe-page .el-input, .pe-page .el-input-number { height: 28px; }
+.pe-page .el-select__selected-item { font-size: 12px; }
+.pe-page .el-select-dropdown__item { font-size: 12px; }
+.pe-field-disabled label { color: #66778b; }
+.pe-period { margin-top: auto; }
+.pe-period label { font-weight: 700; }
+.pe-edge-row { display: grid; grid-template-columns: minmax(0, 1fr) 42px; align-items: center; gap: 8px; }
+.pe-edge-row .pe-field { grid-template-columns: 22px minmax(65px, 1fr) 16px; column-gap: 5px; }
+.pe-page .pe-edge-dis { margin: 0; height: 28px; }
+.pe-electronics { padding: 0 22px 18px; }
+.pe-electronics h2 { margin-left: 22%; padding-top: 4px; }
+.pe-circuit-hint { display: none; color: #5d6f86; font-size: 12px; margin-bottom: 10px; }
+.pe-circuit-scroll { overflow-x: auto; }
+.pe-circuit-scroll:focus-visible { outline: 2px solid #245bd6; outline-offset: -2px; }
+.pe-circuit { position: relative; width: 874px; height: 380px; margin: 0 auto; }
+.pe-schematic { position: absolute; inset: 0; width: 874px; height: 380px; pointer-events: none; }
+.pe-wire { fill: none; stroke: #607591; stroke-width: 1.4; }
+.pe-node { fill: #607591; }
+.pe-contacts { fill: #fff; stroke: #607591; stroke-width: 1.3; }
+.pe-page .pe-relay-toggle.el-button {
+  position: absolute; width: 44px; height: 32px; padding: 0; margin: 0;
+  background: transparent; border: 1px solid transparent; box-shadow: none;
+}
+.pe-page .pe-relay-toggle.el-button:hover, .pe-page .pe-relay-toggle.el-button:focus-visible {
+  background: #245bd60c; border: 1px dashed #245bd6;
+}
+.pe-main-toggle { left: 419px; top: 120px; }
+.pe-page .pe-ppmu-toggle.el-button { left: 448px; top: 160px; height: 40px; }
+.pe-drive-symbol { fill: #d9cbf1; stroke: #9676c2; }
+.pe-compare-symbol { fill: #f8dda8; stroke: #ba8e38; }
+.pe-circuit-mode { fill: #5d6f86; font: 12px monospace; }
+.pe-voltage { position: absolute; left: 0; width: 196px; grid-template-columns: 49px 108px 25px !important; }
+.pe-drive-label { position: absolute; top: 132px; left: 50px; color: #41536b; }
+.pe-page .pe-ppmu-button { position: absolute; top: 187px; left: 344px; width: 64px; height: 32px; padding: 0; }
+.pe-page .pe-counter-button { position: absolute; top: 288px; left: 30px; width: 73px; height: 34px; padding: 0; margin: 0; }
+.pe-driver, .pe-pin { position: absolute; left: 582px; width: 273px; grid-template-columns: 83px minmax(0, 1fr); }
+.pe-driver { top: 19px; }
+.pe-pin { top: 112px; }
+.pe-channel { position: absolute; top: 167px; left: 600px; font-size: 12px; color: #41536b; }
+.pe-channel strong { font: 11px monospace; color: #15253d; }
+.pe-channel p { margin-top: 12px; color: #5d6f86; font-size: 11px; }
+.pe-active-load { position: absolute; top: 260px; left: 278px; width: 192px; border: 1px solid #aebed3; border-radius: 5px; background: #f8fafd; padding: 8px 10px 10px; }
+.pe-active-load legend { color: #243b60; padding: 0 5px; font-size: 12px; }
+.pe-active-load .pe-field { grid-template-columns: 27px minmax(0, 1fr) 22px; }
+.pe-active-load .pe-field + .pe-field { margin-top: 8px; }
+.pe-footer { padding: 12px 22px; border-top: 1px solid #dbe4ef; background: #f8fafd; display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.pe-footer > span { font-size: 12px; color: #5d6f86; }
+.pe-footer > div { display: flex; flex-shrink: 0; }
+.pe-footer .pe-warning { color: #946015; }
+.pe-workspace-note { color: #5d6f86; font-size: 11px; margin-top: 14px; }
+.pe-page .el-button { height: 30px; font-size: 12px; }
+.pe-page .el-button:not(.el-button--primary):hover { color: #245bd6; }
+.pe-page .pe-dialog { --el-dialog-bg-color: #fff; padding: 0; border: 1px solid #aebed3; border-radius: 10px; max-width: calc(100vw - 32px); }
+.pe-page .pe-dialog .el-dialog__header { padding: 16px 20px; background: #f8fafd; border-color: #dbe4ef; }
+.pe-page .pe-dialog .el-dialog__title { color: #243b60; font-size: 15px; }
+.pe-page .pe-dialog .el-dialog__body { padding: 20px; }
+.pe-dialog-form .pe-field { margin-bottom: 16px; grid-template-columns: 90px minmax(0, 1fr); }
+.pe-dialog-form .pe-field:has(.pe-unit) { grid-template-columns: 90px minmax(0, 1fr) 24px; }
+.pe-dialog-form p { color: #5d6f86; font-size: 12px; }
+.pe-dialog-actions { display: flex; justify-content: flex-end; margin-top: 22px; }
+.pe-counter-reading { display: block; border: 1px solid #dbe4ef; border-radius: 5px; background: #f8fafd; padding: 12px; text-align: right; font: 28px monospace; color: #245bd6; margin-bottom: 20px; }
+@media (max-width: 1060px) {
+  .pe-timing { grid-template-columns: 1fr; gap: 14px; padding: 18px; }
+  .pe-timeset { display: grid; grid-template-columns: 1fr 1fr; padding: 0; }
+  .pe-format-header { grid-template-columns: 1fr 1fr; }
+  .pe-format-header .el-checkbox { justify-self: start; }
+  .pe-format-columns { gap: 12px; }
+  .pe-format-columns > .pe-field-stack:first-child .pe-field { grid-template-columns: 1fr; row-gap: 4px; }
+  .pe-format-columns > .pe-field-stack:first-child label { text-align: left; }
+  .pe-circuit-hint { display: block; }
+}
+@media (max-width: 760px) {
+  .pe-workspace { padding: 20px 12px; }
+  .pe-timing { grid-template-columns: 1fr; }
+  .pe-timeset { display: grid; grid-template-columns: 1fr 1fr; padding: 0; }
+  .pe-format-columns { grid-template-columns: 1fr 1fr; }
+  .pe-format-columns > .pe-field-stack:first-child { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .pe-format-header { grid-template-columns: 1fr; gap: 10px; }
+  .pe-format-header .pe-field { grid-template-columns: 95px minmax(0, 1fr); }
+  .pe-format-header .pe-field label { text-align: left; }
+  .pe-electronics { padding: 0 18px 18px; }
+  .pe-electronics h2 { margin-left: 0; }
+  .pe-footer { flex-wrap: wrap; padding: 12px 18px; }
+}
+@media (max-width: 520px) {
+  .pe-format-columns { grid-template-columns: 1fr; }
+}
+@media (max-width: 420px) {
+  .pe-format-columns { grid-template-columns: 1fr; }
+  .pe-format-columns > .pe-field-stack:first-child { grid-template-columns: 1fr; }
+  .pe-format-columns > .pe-field-stack:first-child .pe-field { grid-template-columns: 85px minmax(0, 1fr); }
+  .pe-period { margin-top: 0; }
+  .pe-toolbar { padding: 12px; font-size: 9px; letter-spacing: .3px; }
+}

@@ -112,6 +112,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: 'MIO16 Timing Formats', icon: 'SetUp', desc: 'MIO16 离线时序格式编辑器' }
   },
   {
+    path: '/pin-electronics',
+    name: 'PinElectronics',
+    component: () => import('@/views/PinElectronicsView/index.vue'),
+    meta: { title: 'Pin Electronics', icon: 'SetUp', desc: '引脚电子学与时序配置' }
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/transfer'
   }
