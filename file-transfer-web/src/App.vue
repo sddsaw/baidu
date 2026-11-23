@@ -42,6 +42,9 @@
           <el-radio-button value="/timesetbasic">
             <el-icon style="margin-right: 4px"><SetUp /></el-icon> Timeset Basic
           </el-radio-button>
+          <el-radio-button value="/mio16-timing">
+            <el-icon style="margin-right: 4px"><SetUp /></el-icon> MIO16 Timing
+          </el-radio-button>
         </el-radio-group>
       </div>
 
@@ -70,7 +73,7 @@
         'waveform-main': route.path === '/waveform',
         'proxima-main': route.path === '/proxima',
         'cluster-main': route.path === '/cluster',
-        'timeset-main': route.path === '/timesetbasic'
+        'timeset-main': route.path === '/timesetbasic' || route.path === '/mio16-timing'
       }"
     >
       <router-view v-slot="{ Component }">
@@ -114,6 +117,7 @@ const activeNav = computed(() => {
   if (route.path === '/waveform') return '/waveform'
   if (route.path === '/circuit-flow') return '/circuit-flow'
   if (route.path === '/timesetbasic') return '/timesetbasic'
+  if (route.path === '/mio16-timing') return '/mio16-timing'
   return '/transfer'
 })
 

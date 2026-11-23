@@ -1,0 +1,889 @@
+
+
+.mio-workspace {
+  --mio-bg: #111923;
+  --mio-panel: #17212e;
+  --mio-line: #304052;
+  --mio-muted: #9aaabe;
+  --mio-text: #e0e9f3;
+  box-sizing: border-box;
+  min-height: 100%;
+  padding: 24px;
+  background: var(--mio-bg);
+  color: var(--mio-text);
+  font: 13px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif;
+  color-scheme: dark
+}
+
+.mio-workspace * {
+  box-sizing: border-box
+}
+
+.mio-workspace button,
+.mio-workspace input,
+.mio-workspace select {
+  font: inherit
+}
+
+.mio-workspace button {
+  cursor: pointer;
+  border: 1px solid #43546b;
+  color: #d7e2ef;
+  border-radius: 5px;
+  background: #213044;
+  padding: 7px 11px;
+  white-space: nowrap
+}
+
+.mio-workspace button:hover {
+  background: #30455f
+}
+
+.mio-workspace button:disabled {
+  opacity: .45;
+  cursor: not-allowed
+}
+
+.mio-workspace :focus-visible {
+  outline: 2px solid #61d9ca;
+  outline-offset: 2px
+}
+
+.mio-workspace input,
+.mio-workspace select {
+  min-width: 0;
+  color: #dce8f6;
+  background: #111c2a;
+  border: 1px solid #3b4e65;
+  border-radius: 4px;
+  padding: 6px 8px
+}
+
+.mio-workspace input[type=checkbox] {
+  accent-color: #50c8b9
+}
+
+.mio-workspace input:disabled,
+.mio-workspace select:disabled {
+  opacity: .45
+}
+
+.mio-workspace .mio-titlebar {
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 22px
+}
+
+.mio-workspace .eyebrow {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #65cabb;
+  font-weight: 700
+}
+
+.mio-workspace .mio-titlebar h1 {
+  font-size: 26px;
+  letter-spacing: .2px;
+  font-weight: 700;
+  margin: 5px 0
+}
+
+.mio-workspace .mio-titlebar h1 span {
+  font-weight: 400;
+  color: #aebed1
+}
+
+.mio-workspace .mio-titlebar p {
+  color: var(--mio-muted);
+  margin: 0;
+  font-size: 12px
+}
+
+.mio-workspace .workspace-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap
+}
+
+.mio-workspace .primary {
+  color: #102a29;
+  background: #66d5c6;
+  border-color: #66d5c6;
+  font-weight: 650
+}
+
+.mio-workspace .primary:hover {
+  background: #89e1d6
+}
+
+.mio-workspace .offline-badge {
+  color: #acbbcf;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: 8px
+}
+
+.mio-workspace .offline-badge:before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #9cafc4
+}
+
+.mio-workspace .global-settings {
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+  align-items: center;
+  background: #1c2939;
+  border: 1px solid var(--mio-line);
+  border-radius: 7px;
+  padding: 16px 20px;
+  margin-bottom: 18px
+}
+
+.mio-workspace .global-settings label {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: #a9bcd2
+}
+
+.mio-workspace .global-settings input {
+  width: 170px
+}
+
+.mio-workspace .global-settings .unit-input {
+  display: flex;
+  align-items: center;
+  gap: 8px
+}
+
+.mio-workspace .global-settings .unit-input input {
+  width: 100px;
+  text-align: right
+}
+
+.mio-workspace .global-settings input[type=checkbox] {
+  width: 15px;
+  height: 15px
+}
+
+.mio-workspace .rate-readout {
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid #3a4e65;
+  padding-left: 25px
+}
+
+.mio-workspace .rate-readout span {
+  font-size: 9px;
+  letter-spacing: 1.4px;
+  color: #a3b4c9
+}
+
+.mio-workspace .rate-readout strong {
+  font-size: 16px;
+  font-family: ui-monospace,monospace;
+  font-weight: 500;
+  color: #77ddcc
+}
+
+.mio-workspace .validation-state {
+  margin-left: auto;
+  color: #77ddcc;
+  font-size: 12px
+}
+
+.mio-workspace .validation-state.error {
+  color: #ffab9d
+}
+
+.mio-workspace .editor-columns {
+  display: grid;
+  grid-template-columns: minmax(0,1fr);
+  gap: 18px
+}
+
+.mio-workspace .mio-panel {
+  min-width: 0;
+  border: 1px solid var(--mio-line);
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--mio-panel)
+}
+
+.mio-workspace .panel-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--mio-line);
+  min-height: 55px
+}
+
+.mio-workspace .panel-heading>div {
+  display: flex;
+  gap: 10px;
+  align-items: center
+}
+
+.mio-workspace .panel-heading h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0
+}
+
+.mio-workspace .section-index {
+  font: 11px ui-monospace,monospace;
+  color: #72cfc2
+}
+
+.mio-workspace .muted {
+  color: var(--mio-muted);
+  font-size: 11px
+}
+
+.mio-workspace .pin-search {
+  width: 140px
+}
+
+.mio-workspace .table-scroll {
+  overflow: auto;
+  max-height: 420px
+}
+
+.mio-workspace .timing-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 970px;
+  width: 100%;
+  font-size: 12px
+}
+
+.mio-workspace .timing-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #202e40
+}
+
+.mio-workspace .timing-table th {
+  text-align: left;
+  font-weight: 500;
+  color: #a9bed4
+}
+
+.mio-workspace .timing-table th,
+.mio-workspace .timing-table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid #2c3a4b;
+  border-right: 1px solid #29384a
+}
+
+.mio-workspace .timing-table thead th {
+  padding: 10px 8px;
+  white-space: nowrap
+}
+
+.mio-workspace .timing-table small {
+  font-size: 9px;
+  color: #8b9caf
+}
+
+.mio-workspace .timing-table td input {
+  width: 100%;
+  min-width: 68px;
+  padding: 5px 4px;
+  text-align: right;
+  font-family: ui-monospace,monospace;
+  border: 1px solid transparent;
+  background: transparent
+}
+
+.mio-workspace .timing-table td input:hover,
+.mio-workspace .timing-table td input:focus {
+  background: #111d2c;
+  border-color: #58718e
+}
+
+.mio-workspace .timing-table td select {
+  width: 100%;
+  min-width: 85px;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 5px 3px
+}
+
+.mio-workspace .timing-table td select:hover {
+  border-color: #58718e
+}
+
+.mio-workspace .timing-table tr.selected {
+  background: #213b47
+}
+
+.mio-workspace .timing-table tr.invalid {
+  box-shadow: inset 3px 0 #ff9b88
+}
+
+.mio-workspace .timing-table .pin-button {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  padding: 4px 0;
+  font: 12px ui-monospace,monospace
+}
+
+.mio-workspace .pin-button i {
+  width: 6px;
+  height: 6px;
+  background: #67c7b6;
+  border-radius: 50%
+}
+
+.mio-workspace .pin-button i.bad {
+  background: #ff9b88
+}
+
+.mio-workspace .half-cell {
+  text-align: center;
+  color: #b6cae2
+}
+
+.mio-workspace .unused {
+  display: block;
+  color: #62738a;
+  text-align: center
+}
+
+.mio-workspace .table-note {
+  padding: 10px 16px;
+  font-size: 11px;
+  color: #a5b5c8;
+  line-height: 1.8
+}
+
+.mio-workspace .pin-badge,
+.mio-workspace .format-badge {
+  font: 11px ui-monospace,monospace;
+  padding: 3px 7px;
+  border-radius: 4px;
+  background: #293e50;
+  color: #85ddcf
+}
+
+.mio-workspace .preview-toolbar,
+.mio-workspace .pattern-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 12px 16px
+}
+
+.mio-workspace .preview-toolbar {
+  border-bottom: 1px solid #29394b
+}
+
+.mio-workspace .preview-toolbar label,
+.mio-workspace .pattern-toolbar label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: #b0bfd3
+}
+
+.mio-workspace .preview-toolbar select {
+  min-width: 60px
+}
+
+.mio-workspace .segmented {
+  display: flex
+}
+
+.mio-workspace .segmented button {
+  border-radius: 0;
+  padding: 6px 12px
+}
+
+.mio-workspace .segmented button:first-child {
+  border-radius: 4px 0 0 4px
+}
+
+.mio-workspace .segmented button:last-child {
+  border-radius: 0 4px 4px 0
+}
+
+.mio-workspace .segmented button[aria-pressed=true] {
+  background: #33524f;
+  color: #8fe4d4;
+  border-color: #50897f
+}
+
+.mio-workspace .zoom-controls {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  margin-left: auto
+}
+
+.mio-workspace .zoom-controls span {
+  width: 30px;
+  text-align: center;
+  color: #bcc9da;
+  font-family: ui-monospace,monospace
+}
+
+.mio-workspace .pattern-toolbar input {
+  width: 150px;
+  font-family: ui-monospace,monospace;
+  letter-spacing: 2px
+}
+
+.mio-workspace .wave-scroll {
+  overflow-x: auto;
+  background: #101a27;
+  margin: 0 16px;
+  border: 1px solid #2d4055;
+  border-radius: 4px
+}
+
+.mio-workspace .wave-scroll svg {
+  display: block;
+  min-width: 100%
+}
+
+.mio-workspace .cycle-label {
+  font: 11px ui-monospace,monospace;
+  fill: #a5bbd3
+}
+
+.mio-workspace .tick-label {
+  font: 11px ui-monospace,monospace;
+  fill: #a9bbd0
+}
+
+.mio-workspace .period-line {
+  stroke: #344a63
+}
+
+.mio-workspace .half-line {
+  stroke: #26394f
+}
+
+.mio-workspace .drive-path {
+  stroke: #63d8c6;
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round
+}
+
+.mio-workspace .alternative-path {
+  stroke: #88aaf2;
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round
+}
+
+.mio-workspace .prior-path {
+  stroke: #8193ab;
+  fill: none;
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4
+}
+
+.mio-workspace .drive-label {
+  font: 10px ui-monospace,monospace;
+  fill: #80dcca
+}
+
+.mio-workspace .r0-line {
+  stroke: #f1bd77;
+  stroke-width: 1.5
+}
+
+.mio-workspace .r1-line {
+  stroke: #bb9aed;
+  stroke-width: 1.5
+}
+
+.mio-workspace .r0-label,
+.mio-workspace .r1-label {
+  font: 10px ui-monospace,monospace
+}
+
+.mio-workspace .r0-label {
+  fill: #f1bd77
+}
+
+.mio-workspace .r1-label {
+  fill: #bb9aed
+}
+
+.mio-workspace .legend {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  font-size: 11px;
+  color: #afc0d4
+}
+
+.mio-workspace .legend span {
+  display: flex;
+  align-items: center;
+  gap: 7px
+}
+
+.mio-workspace .legend i {
+  width: 16px;
+  border-top: 2px solid
+}
+
+.mio-workspace .legend-drive {
+  color: #63d8c6
+}
+
+.mio-workspace .legend .legend-prior {
+  border-top-style: dashed;
+  color: #8193ab
+}
+
+.mio-workspace .legend-r0 {
+  color: #f1bd77
+}
+
+.mio-workspace .legend-r1 {
+  color: #bb9aed
+}
+
+.mio-workspace .rule-callout {
+  margin: 0 16px 16px;
+  border-left: 2px solid #4c8f86;
+  background: #1b2b38;
+  padding: 10px 14px;
+  font-size: 12px
+}
+
+.mio-workspace .rule-callout strong {
+  color: #9ce1d4;
+  font-size: 11px
+}
+
+.mio-workspace .rule-callout p {
+  margin: 5px 0;
+  color: #b5c5d7
+}
+
+.mio-workspace .rules-details,
+.mio-workspace .validation-details {
+  margin-top: 18px;
+  border: 1px solid #34465c;
+  border-radius: 6px;
+  background: #17212e;
+  padding: 12px 16px;
+  font-size: 12px
+}
+
+.mio-workspace .rules-details summary,
+.mio-workspace .validation-details summary {
+  cursor: pointer;
+  color: #b7c9df
+}
+
+.mio-workspace .rules-grid {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 24px;
+  padding: 12px 0 0;
+  color: #a9bcd2
+}
+
+.mio-workspace .rules-grid h3 {
+  font-size: 12px;
+  color: #dce8f7
+}
+
+.mio-workspace .rules-grid a {
+  color: #88ded0
+}
+
+.mio-workspace .validation-details {
+  border-color: #835c52
+}
+
+.mio-workspace .validation-details li {
+  color: #ffbaa9
+}
+
+.mio-workspace .plot-error {
+  padding: 30px;
+  color: #ffb4a3;
+  min-height: 220px
+}
+
+.mio-workspace .plot-error p {
+  margin: 5px 0
+}
+
+.mio-workspace .empty-state {
+  padding: 24px!important;
+  text-align: center
+}
+
+.mio-workspace .mio-status {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  color: #a1b2c8;
+  font-size: 11px;
+  padding: 14px 0 0
+}
+
+.mio-workspace .mio-status span:last-child {
+  font-family: ui-monospace,monospace;
+  white-space: nowrap
+}@media(min-width:1800px){
+
+.mio-workspace .editor-columns {
+  grid-template-columns: minmax(970px,1.08fr) minmax(600px,1fr)
+}
+
+.mio-workspace .table-scroll {
+  max-height: 620px
+}}@media(max-width:900px){
+
+.mio-workspace {
+  padding: 16px
+}
+
+.mio-workspace .mio-titlebar {
+  align-items: flex-start;
+  flex-direction: column
+}
+
+.mio-workspace .workspace-actions {
+  width: 100%
+}
+
+.mio-workspace .global-settings {
+  gap: 16px;
+  padding: 12px
+}
+
+.mio-workspace .validation-state {
+  margin-left: 0
+}
+
+.mio-workspace .rules-grid {
+  grid-template-columns: 1fr;
+  gap: 8px
+}
+
+.mio-workspace .mio-status {
+  flex-direction: column;
+  gap: 4px
+}}@media(max-width:500px){
+
+.mio-workspace {
+  padding: 12px
+}
+
+.mio-workspace .mio-titlebar h1 {
+  font-size: 22px
+}
+
+.mio-workspace .workspace-actions button {
+  font-size: 11px;
+  padding: 7px
+}
+
+.mio-workspace .offline-badge {
+  width: 100%
+}
+
+.mio-workspace .rate-readout {
+  border: 0;
+  padding-left: 0
+}
+
+.mio-workspace .preview-toolbar {
+  gap: 10px
+}
+
+.mio-workspace .zoom-controls {
+  margin-left: 0
+}
+
+.mio-workspace .panel-heading .muted {
+  display: none
+}
+
+.mio-workspace .panel-heading {
+  padding: 12px
+}
+
+.mio-workspace .pin-search {
+  width: 110px
+}
+
+.mio-workspace .legend {
+  gap: 12px
+}}
+
+
+.mio-workspace .timing-table thead th:nth-child(2) { min-width: 138px; }
+.mio-workspace .timing-table thead th:nth-child(4) { min-width: 118px; }
+
+/* Keep the editor and the complete timing diagram side by side. */
+.mio-workspace .editor-split-scroll {
+  overflow-x: auto;
+}
+.mio-workspace .editor-columns {
+  grid-template-columns: minmax(0, 1.18fr) minmax(0, 1fr);
+  min-width: 0;
+  gap: 16px;
+}
+.mio-workspace .pin-panel,
+.mio-workspace .preview-panel {
+  height: clamp(560px, calc(100dvh - 290px), 900px);
+  display: flex;
+  flex-direction: column;
+}
+.mio-workspace .panel-heading,
+.mio-workspace .preview-toolbar,
+.mio-workspace .table-note,
+.mio-workspace .legend,
+.mio-workspace .preview-note {
+  flex-shrink: 0;
+}
+.mio-workspace .table-scroll {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+}
+.mio-workspace .timing-table {
+  table-layout: fixed;
+  min-width: 768px;
+  font-size: 11px;
+}
+.mio-workspace .timing-table:has(th:nth-child(13)) {
+  min-width: 926px;
+}
+.mio-workspace .timing-table th,
+.mio-workspace .timing-table td {
+  padding: 5px 4px;
+}
+.mio-workspace .timing-table td input,
+.mio-workspace .timing-table td select {
+  min-width: 0;
+  padding: 5px 2px;
+}
+.mio-workspace .timing-table thead th:nth-child(2),
+.mio-workspace .timing-table thead th:nth-child(4) {
+  min-width: 0;
+}
+.mio-workspace .wave-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  margin: 0 12px;
+  position: relative;
+  overscroll-behavior: contain;
+}
+.mio-workspace .shared-time-axis {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.mio-workspace .lane-pin-label {
+  fill: #dae9f6;
+  font: 12px ui-monospace, monospace;
+}
+.mio-workspace .lane-format-label {
+  fill: #9badc3;
+  font: 10px ui-monospace, monospace;
+}
+.mio-workspace .lane-half-label {
+  fill: #9badc3;
+  font: 9px ui-monospace, monospace;
+}
+.mio-workspace .lane-error {
+  fill: #ffb4a3;
+  font-size: 11px;
+}
+.mio-workspace .preview-note {
+  color: #a9bed4;
+  font-size: 11px;
+  margin: 0;
+  padding: 0 14px 12px;
+}
+.mio-workspace .preview-toolbar {
+  gap: 8px 12px;
+  padding: 12px;
+}
+.mio-workspace .preview-toolbar .zoom-controls {
+  gap: 4px;
+}
+.mio-workspace .legend {
+  gap: 12px;
+  padding: 10px 14px;
+}
+
+@media (max-width: 1000px) {
+  .mio-workspace .panel-heading { flex-wrap: wrap; padding: 10px; }
+  .mio-workspace .panel-heading .muted { display: none; }
+  .mio-workspace .pin-search { width: 100%; }
+  .mio-workspace .preview-toolbar .zoom-controls { margin-left: 0; }
+  .mio-workspace .editor-columns { gap: 10px; }
+}
+.mio-workspace .timing-table tbody th {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #17212e;
+}
+.mio-workspace .timing-table tbody tr.selected th {
+  background: #213b47;
+}
+.mio-workspace .timing-table thead th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: #202e40;
+}
+.mio-workspace .wave-pin-labels {
+  position: sticky;
+  left: 0;
+  width: 104px;
+  z-index: 1;
+  pointer-events: none;
+}
+.mio-workspace .wave-pin-label {
+  height: 132px;
+  background: #111e2c;
+  border-bottom: 1px solid #304052;
+  padding: 32px 12px;
+  font: 12px/1.8 ui-monospace, monospace;
+}
+.mio-workspace .wave-pin-label.active {
+  background: #1b303c;
+}
+.mio-workspace .wave-pin-label small {
+  display: block;
+  color: #9badc3;
+  font-size: 10px;
+}
+@media (max-width: 480px) {
+  .mio-workspace .editor-columns { min-width: 640px; }
+}

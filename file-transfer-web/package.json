@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
-    "test:scenarios": "node scripts/test-scenarios.cjs"
+    "test:scenarios": "node scripts/test-scenarios.cjs",
+    "test:mio16": "node scripts/test-mio16.mjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
@@ -16,6 +17,7 @@
     "@vscode/wasm-component-model": "^1.0.2",
     "@vue-flow/core": "^1.48.2",
     "culori": "^4.0.2",
+    "d3-scale": "^4.0.3",
     "element-plus": "^2.8.5",
     "lz4js": "^0.2.0",
     "three": "^0.186.1",
@@ -23,6 +25,7 @@
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
+    "@types/d3-scale": "^4.0.9",
     "@types/node": "^22.7.5",
     "@types/three": "^0.186.0",
     "@vitejs/plugin-vue": "^5.1.4",

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, shallowRef, useTemplateRef, watch } from 'vue'
+import { scaleLinear } from 'd3-scale'
 
 defineOptions({
   name: 'TimesetBasic',
@@ -28,12 +29,32 @@ const timingColumns: { key: TimingKey; label: string }[] = [
   { key: 'r0', label: 'R0' }, { key: 'r1', label: 'R1' },
 ]
 const compareModes: CompareMode[] = ['Edge', 'Window', 'Off']
+const compareKeys: Record<CompareMode, readonly ('r0' | 'r1')[]> = {
+  Edge: ['r0'], Window: ['r0', 'r1'], Off: [],
+}
 const formats: PinFormat[] = ['NR', 'RL', 'RH', 'RZ']
 const rows = ref<TimingRow[]>(['a1', 'a0', 'a0', 'a0', 'a0'].map((pin, id) => ({
   id, pin, compareMode: 'Edge', format: id === 0 ? 'NR' : 'RL',
   d0: 20, d1: 50, d2: 0, d3: 75, r0: 80, r1: 0,
 })))
 const period = shallowRef(100)
+const periods = shallowRef(1)
+const zoom = shallowRef(1)
+const maxZoom = 8
+const chartScroll = useTemplateRef<HTMLDivElement>('chartScroll')
+const plotWidth = computed(() => 500 * zoom.value)
+const chartWidth = computed(() => 100 + plotWidth.value)
+const previewDuration = computed(() => periods.value * period.value)
+const scale = computed(() => scaleLinear()
+  .domain([0, previewDuration.value])
+  .range([52, 52 + plotWidth.value]))
+const timeX = (time: number) => scale.value(time)
+const cycleWidth = computed(() => timeX(period.value) - timeX(0))
+const cycles = computed(() => Array.from({ length: periods.value }, (_, index) => ({
+  index,
+  offsetX: index * cycleWidth.value,
+  startTime: index * period.value,
+})))
 const periodDraft = shallowRef('100')
 const selectedRow = shallowRef(0)
 const activeCell = shallowRef<{ rowId: number; key: TimingKey } | null>(null)
@@ -56,10 +77,25 @@ const periodError = computed(() => {
   if (value < maximumTiming.value) return `Period 不能小于当前最大时序值 ${maximumTiming.value} ns。`
   return ''
 })
-const ticks = computed(() => Array.from({ length: 6 }, (_, i) => ({
-  x: 52 + i * 100,
-  label: formatNumber(period.value * i / 5),
-})))
+const ticks = computed(() => {
+  const times = scale.value.ticks(5 * zoom.value)
+  const end = previewDuration.value
+  // Reserve room for the exact endpoint even when D3 chooses a rounded interval.
+  const visible = times.filter(time => time === 0 || timeX(end) - timeX(time) >= 42)
+  return [...visible, end].map(time => ({ x: timeX(time), label: formatNumber(time) }))
+})
+
+async function setZoom(next: number) {
+  const viewport = chartScroll.value
+  if (!viewport || next === zoom.value) return
+  const oldWidth = viewport.scrollWidth
+  const unitsPerPixel = chartWidth.value / oldWidth
+  const center = viewport.clientWidth / 2
+  const anchorTime = scale.value.invert((viewport.scrollLeft + center) * unitsPerPixel)
+  zoom.value = Math.max(1, Math.min(maxZoom, next))
+  await nextTick()
+  viewport.scrollLeft = timeX(anchorTime) * viewport.scrollWidth / chartWidth.value - center
+}
 
 // A pending Period can also become valid after the pin timings are reduced.
 watch([periodDraft, maximumTiming], () => {
@@ -131,7 +167,6 @@ function cancelEditing() {
   if (cell) restoreCellFocus(cell)
 }
 
-const timeX = (time: number) => 52 + time / period.value * 500
 const laneY = (index: number) => 100 + index * 104
 
 // Preview the non-NR formats; NR uses its own dual-line paths below.
@@ -142,17 +177,17 @@ function drivePath(row: TimingRow, index: number) {
   const baseline = row.format === 'RH' ? y - 9 : y + 9
   const level = row.format === 'RH' ? y + 9 : y - 9
   if (row.format === 'RZ') {
-    return `M 52 ${y} H ${start} V ${level} H ${end} V ${y} H 552`
+    return `M 52 ${y} H ${start} V ${level} H ${end} V ${y} H ${timeX(period.value)}`
   }
-  return `M 52 ${baseline} H ${start} V ${level} H ${end} V ${baseline} H 552`
+  return `M 52 ${baseline} H ${start} V ${level} H ${end} V ${baseline} H ${timeX(period.value)}`
 }
 
-// NR：从左侧折点向时间零点绘制虚线，使最后一划与交叉段相接。
+// NR 仅在首周期的 D1 交叉一次，此后保持两条实线直到预览终点。
 function nrTrace(row: TimingRow, index: number) {
   const y = laneY(index)
   const d1 = timeX(row.d1)
   const start = timeX(0)
-  const end = timeX(period.value)
+  const end = timeX(previewDuration.value)
   const halfWidth = Math.min(6, d1 - start, end - d1)
   const left = d1 - halfWidth
   const right = d1 + halfWidth
@@ -283,40 +318,60 @@ const nrTraces = computed(() => rows.value.map((row, index) => nrTrace(row, inde
       <section class="waveform-panel" aria-labelledby="waveform-title">
         <div class="waveform-heading">
           <h2 id="waveform-title">时序预览</h2>
-          <span class="preview-range">0 — {{ formatNumber(period) }} ns</span>
+          <label class="periods-control">
+            periods
+            <select v-model="periods">
+              <option v-for="count in [1, 2, 3]" :key="count" :value="count">{{ count }}</option>
+            </select>
+          </label>
+          <div class="zoom-controls" role="group" aria-label="时间轴缩放">
+            <button type="button" aria-label="缩小时间轴" :disabled="zoom === 1" @click="setZoom(zoom / 2)">−</button>
+            <output>{{ zoom }}×</output>
+            <button type="button" aria-label="放大时间轴" :disabled="zoom === maxZoom" @click="setZoom(zoom * 2)">+</button>
+          </div>
+          <span class="preview-range">0 — {{ formatNumber(previewDuration) }} ns</span>
         </div>
-        <div class="waveform-scroll">
-          <svg class="waveform-svg" viewBox="0 0 600 568" role="img" :aria-label="`5 个引脚的时序预览，周期 ${formatNumber(period)} ns`">
+        <div ref="chartScroll" class="waveform-scroll" tabindex="0" role="region" aria-label="可横向滚动的时序图">
+          <svg class="waveform-svg" :viewBox="`0 0 ${chartWidth} 568`" :style="{width: `${chartWidth / 600 * 100}%`, minWidth: `${380 * chartWidth / 600}px`}" role="img" :aria-label="`${rows.length} 个引脚的时序预览，${periods} 个周期，共 ${formatNumber(previewDuration)} ns`">
             <g class="time-grid">
               <g v-for="tick in ticks" :key="tick.x">
                 <line :x1="tick.x" :x2="tick.x" y1="42" y2="556" />
                 <text :x="tick.x" y="27" text-anchor="middle">{{ tick.label }}</text>
               </g>
-              <text x="585" y="27" text-anchor="end">ns</text>
+              <text :x="chartWidth - 15" y="27" text-anchor="end">ns</text>
             </g>
-            <line class="period-end" x1="552" x2="552" y1="42" y2="556" />
+            <line v-for="cycle in cycles" :key="cycle.index" class="period-end" :x1="timeX(period) + cycle.offsetX" :x2="timeX(period) + cycle.offsetX" y1="42" y2="556" />
             <g v-for="(row, index) in rows" :key="row.id" class="wave-lane" :class="{ 'selected-lane': selectedRow === row.id }">
-              <rect class="lane-background" x="0" :y="laneY(index) - 51" width="600" height="104" />
-              <line class="lane-separator" x1="0" x2="600" :y1="laneY(index) + 52" :y2="laneY(index) + 52" />
+              <rect class="lane-background" x="0" :y="laneY(index) - 51" :width="chartWidth" height="104" />
+              <line class="lane-separator" x1="0" :x2="chartWidth" :y1="laneY(index) + 52" :y2="laneY(index) + 52" />
               <text class="wave-pin" x="14" :y="laneY(index) - 24">{{ row.pin }}</text>
-              <line v-if="row.format !== 'NR'" class="wave-baseline" x1="52" x2="552" :y1="laneY(index)" :y2="laneY(index)" />
-              <g class="auxiliary-edges">
-                <line v-for="key in (['d2', 'd3'] as const)" :key="key" :x1="timeX(row[key])" :x2="timeX(row[key])" :y1="laneY(index) - 13" :y2="laneY(index) + 13">
-                  <title>{{ key.toUpperCase() }}: {{ formatNumber(row[key]) }} ns</title>
-                </line>
-              </g>
               <g v-if="row.format === 'NR'" class="nr-wave">
                 <path class="nr-wave-dashed" :d="nrTraces[index].lead" />
                 <path :d="nrTraces[index].drive" />
               </g>
-              <path v-else class="drive-wave" :d="drivePath(row, index)" />
-              <text class="edge-label" :x="timeX(row.d0)" :y="laneY(index) - 20" :text-anchor="row.d0 > period * 0.8 ? 'end' : 'start'">D0 {{ formatNumber(row.d0) }}ns</text>
-              <text class="edge-label" :x="timeX(row.d1)" :y="laneY(index) + 31" :text-anchor="row.d1 < period * 0.2 ? 'start' : 'end'">D1 {{ formatNumber(row.d1) }}ns</text>
-              <g v-if="row.compareMode !== 'Off'" class="compare-edges">
-                <rect v-if="row.compareMode === 'Window'" class="compare-window" :x="timeX(Math.min(row.r0, row.r1))" :y="laneY(index) - 14" :width="Math.abs(timeX(row.r1) - timeX(row.r0))" height="28" />
-                <path v-for="key in (row.compareMode === 'Window' ? (['r0', 'r1'] as const) : (['r0'] as const))" :key="key" :d="`M ${timeX(row[key])} ${laneY(index) - 5} l 5 5 l -5 5 l -5 -5 Z`">
-                  <title>{{ key.toUpperCase() }}: {{ formatNumber(row[key]) }} ns</title>
-                </path>
+              <g v-for="cycle in cycles" :key="cycle.index" :transform="`translate(${cycle.offsetX} 0)`">
+                <line v-if="row.format !== 'NR'" class="wave-baseline" x1="52" :x2="timeX(period)" :y1="laneY(index)" :y2="laneY(index)" />
+                <g v-if="row.format !== 'NR'" class="auxiliary-edges">
+                  <line v-for="key in (['d2', 'd3'] as const)" :key="key" :x1="timeX(row[key])" :x2="timeX(row[key])" :y1="laneY(index) - 13" :y2="laneY(index) + 13">
+                    <title>{{ key.toUpperCase() }}: {{ formatNumber(cycle.startTime + row[key]) }} ns</title>
+                  </line>
+                </g>
+                <path v-if="row.format !== 'NR'" class="drive-wave" :d="drivePath(row, index)" />
+                <text v-if="row.format !== 'NR' || cycle.index === 0" class="edge-label" :x="timeX(row.d0)" :y="laneY(index) - 20" :text-anchor="row.d0 > period * 0.8 ? 'end' : 'start'">D0 {{ formatNumber(cycle.startTime + row.d0) }}ns</text>
+                <text v-if="row.format !== 'NR' || cycle.index === 0" class="edge-label" :x="timeX(row.d1)" :y="laneY(index) + 31" :text-anchor="row.d1 < period * 0.2 ? 'start' : 'end'">D1 {{ formatNumber(cycle.startTime + row.d1) }}ns</text>
+                <g v-if="row.format === 'NR'" class="nr-compare">
+                  <g v-for="key in compareKeys[row.compareMode]" :key="key" :transform="`translate(${timeX(row[key])} ${laneY(index)})`">
+                    <title>{{ key.toUpperCase() }} · {{ formatNumber(cycle.startTime + row[key]) }} ns</title>
+                    <line x1="0" x2="0" :y1="key === 'r0' ? -32 : -12" :y2="key === 'r1' ? 32 : 12" />
+                    <text x="0" :y="key === 'r0' ? -36 : 44" text-anchor="middle">{{ key.toUpperCase() }}</text>
+                  </g>
+                </g>
+                <g v-else-if="row.compareMode !== 'Off'" class="compare-edges">
+                  <rect v-if="row.compareMode === 'Window'" class="compare-window" :x="timeX(Math.min(row.r0, row.r1))" :y="laneY(index) - 14" :width="Math.abs(timeX(row.r1) - timeX(row.r0))" height="28" />
+                  <path v-for="key in compareKeys[row.compareMode]" :key="key" :d="`M ${timeX(row[key])} ${laneY(index) - 5} l 5 5 l -5 5 l -5 -5 Z`">
+                    <title>{{ key.toUpperCase() }}: {{ formatNumber(cycle.startTime + row[key]) }} ns</title>
+                  </path>
+                </g>
               </g>
             </g>
           </svg>
@@ -325,7 +380,7 @@ const nrTraces = computed(() => rows.value.map((row, index) => nrTrace(row, inde
           <span><i class="legend-drive"></i>D0 / D1</span>
           <span><i class="legend-auxiliary"></i>D2 / D3</span>
           <span><i class="legend-compare"></i>R0 / R1</span>
-          <span class="legend-end">终点 = Period</span>
+          <span class="legend-end">每周期 {{ formatNumber(period) }} ns</span>
         </div>
       </section>
     </div>
@@ -410,7 +465,13 @@ const nrTraces = computed(() => rows.value.map((row, index) => nrTrace(row, inde
 .table-help { flex-wrap: wrap; gap: 12px; color: var(--muted); font-size: 11px; margin-top: 16px; }
 .table-help kbd { display: inline-block; padding: 1px 4px; border: 1px solid var(--border); border-radius: 3px; font-size: 10px; margin: 0 3px; }
 .waveform-panel { min-width: 0; padding: 26px 24px 28px; background: #282c31; }
-.waveform-heading { height: 40px; gap: 12px; }
+.waveform-heading { min-height: 40px; flex-wrap: wrap; gap: 8px 12px; }
+.zoom-controls { display: flex; align-items: center; gap: 4px; }
+.zoom-controls button { width: 30px; height: 30px; border: 1px solid var(--border); border-radius: 4px; background: var(--panel); color: var(--text); font-size: 16px; cursor: pointer; }
+.zoom-controls button:disabled { opacity: .45; cursor: default; }
+.zoom-controls output { min-width: 24px; text-align: center; font-size: 12px; }
+.periods-control { display: flex; align-items: center; gap: 6px; margin-left: auto; color: var(--muted); font-size: 13px; }
+.periods-control select { padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--panel); color: var(--text); font: inherit; cursor: pointer; }
 .waveform-heading h2 { font-size: 14px; font-weight: 500; }
 .preview-range { color: var(--muted); font: 12px 'SFMono-Regular', Consolas, monospace; }
 .waveform-scroll { overflow-x: auto; }
@@ -428,6 +489,8 @@ const nrTraces = computed(() => rows.value.map((row, index) => nrTrace(row, inde
 .nr-wave-dashed { stroke-dasharray: 5 3; }
 .edge-label { fill: var(--blue); font-size: 11px; }
 .auxiliary-edges line { stroke: var(--auxiliary); stroke-dasharray: 2 3; opacity: 0.75; }
+.nr-compare line { stroke: var(--compare); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.nr-compare text { fill: var(--compare); font-size: 11px; }
 .compare-edges path { stroke: var(--compare); fill: #282c31; stroke-width: 1.5; }
 .compare-window { fill: #edc47a1a; stroke: var(--compare); stroke-dasharray: 3 3; }
 .waveform-legend { justify-content: flex-start; flex-wrap: wrap; gap: 16px; margin-top: 16px; font-size: 10px; color: var(--muted); }
@@ -449,7 +512,7 @@ const nrTraces = computed(() => rows.value.map((row, index) => nrTrace(row, inde
 @media (max-width: 1150px) {
   .editor-layout { grid-template-columns: 1fr; }
   .configuration-panel { border-right: none; border-bottom: 1px solid var(--border); }
-  .waveform-svg { max-height: 550px; }
+
 }
 @media (max-width: 600px) {
   .workspace-header { padding: 14px 16px; }

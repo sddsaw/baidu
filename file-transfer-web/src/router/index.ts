@@ -106,6 +106,12 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/mio16-timing',
+    name: 'Mio16Timing',
+    component: () => import('@/views/Mio16TimingView/index.vue'),
+    meta: { title: 'MIO16 Timing Formats', icon: 'SetUp', desc: 'MIO16 离线时序格式编辑器' }
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/transfer'
   }
